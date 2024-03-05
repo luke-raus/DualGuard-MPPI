@@ -1,4 +1,4 @@
-import torch
+import numpy as np
 
 
 class DubinsCarFixedVel():
@@ -7,18 +7,17 @@ class DubinsCarFixedVel():
     Gandhi et al 2023 on Safe Importance Sampling in MPPI
     """
 
-    def __init__(self, timestep, linvel, init_state, device='cpu'):
+    def __init__(self, timestep, linvel, init_state):
         """
         Initializes a class of the SimpleDubins vehicle, with a 'nominal' motion model
         """
-        self.d = device
 
         self.nx = 3
         self.nu = 1
 
         self.linvel = linvel
 
-        self.state = init_state.to(device=self.d)
+        self.state = init_state
 
         self.timestep = timestep
 
@@ -30,25 +29,6 @@ class DubinsCarFixedVel():
         self.state[1] = y
         self.state[2] = theta
 
-    def _state_dot(self, states, controls):
-        """
-        Returns the derivative of the given state vector given control inputs.
-        Input:
-            states is     (K, nx) with K > 1
-            controls is   (K, nu=1)
-        Output:
-            state_dots is (K, nx)
-        """
-        theta = states[:, 2]
-        angvel = controls[:, 0]
-
-        x_dot = self.linvel * torch.cos(theta)
-        y_dot = self.linvel * torch.sin(theta)
-        theta_dot = angvel
-
-        state_dot = torch.stack((x_dot, y_dot, theta_dot), dim=1)
-        # Stack along dimension 1 to go from 3 vectors of K values to K (state) vectors of 3 values
-        return state_dot
 
     def _next_states_batch(self, states, controls):
         """
@@ -85,21 +65,20 @@ class DubinsCarFixedVel():
         radius = self.linvel / angvel
 
         # Angle sum trig identities applied to expansion
-        x_next = x + radius * (-torch.sin(theta) + torch.sin(theta + d_theta))
-        y_next = y + radius * (torch.cos(theta) - torch.cos(theta + d_theta))
+        x_next = x + radius * (-np.sin(theta) + np.sin(theta + d_theta))
+        y_next = y + radius * (np.cos(theta) - np.cos(theta + d_theta))
 
         # Apply regular Euler integration if not steering, replacing NaN/Inf's
-        x_next[no_steer] = x[no_steer] + self.linvel * \
-            self.timestep * torch.cos(theta[no_steer])
-        y_next[no_steer] = y[no_steer] + self.linvel * \
-            self.timestep * torch.sin(theta[no_steer])
+        x_next[no_steer] = x[no_steer] + self.linvel * self.timestep * np.cos(theta[no_steer])
+        y_next[no_steer] = y[no_steer] + self.linvel * self.timestep * np.sin(theta[no_steer])
 
         # Add theta & wrap around at 2*pi
         theta_next = theta + d_theta
-        theta_next = ((theta_next + torch.pi) % (2 * torch.pi)) - torch.pi
+        theta_next = ((theta_next + np.pi) % (2 * np.pi)) - np.pi
 
         # Stack along dimension 1 to go from 3 vectors of K values to K (state) vectors of 3 values
-        return torch.stack((x_next, y_next, theta_next), dim=1)
+        return np.column_stack((x_next, y_next, theta_next))
+
 
     def next_states(self, state, control):
         """
@@ -110,7 +89,7 @@ class DubinsCarFixedVel():
         if state.ndim == 1:
             # Singleton state input; unsqueeze to pass to batch function
             assert (control.ndim == 1)
-            return self._next_states_batch(state.unsqueeze(dim=0), control.unsqueeze(dim=0)).squeeze(dim=0)
+            return self._next_states_batch(np.expand_dims(state, axis=0), np.expand_dims(control, axis=0)).squeeze(axis=0)
         else:
             assert (control.ndim > 1)
             return self._next_states_batch(state, control)
