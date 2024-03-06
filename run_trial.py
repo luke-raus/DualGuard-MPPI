@@ -1,5 +1,5 @@
 import time
-import torch
+import numpy as np
 
 
 def run_trial(system, map, controller, max_timesteps, safety_filter, save_samples=False, diagnostics=False):
@@ -12,7 +12,7 @@ def run_trial(system, map, controller, max_timesteps, safety_filter, save_sample
 
     expr_data = {
         't':               [0.],
-        'actual_state':    [system.state.cpu()],
+        'actual_state':    [system.state],
         'actual_action':   [],
         'cost_of_step':    [],
         'running_cost':    [],
@@ -39,11 +39,10 @@ def run_trial(system, map, controller, max_timesteps, safety_filter, save_sample
     running_cost = 0
     for i in range(max_timesteps):
 
-        expr_data['nom_actions_before'].append(controller.U.cpu())
+        expr_data['nom_actions_before'].append(controller.U)
 
         # Check whether current system state is unsafe
-        safety_being_violated = bool(
-            map.check_brt_collision(system.state.unsqueeze(dim=0)))
+        safety_being_violated = bool(map.check_brt_collision(system.state))
 
         # Run MPPI controller anyways, but don't necessarily pass action to state
 
@@ -52,21 +51,17 @@ def run_trial(system, map, controller, max_timesteps, safety_filter, save_sample
 
         potential_next_state = system.next_states(
             system.state, mppi_action)
-        next_state_unsafe = bool(map.check_brt_collision(
-            potential_next_state.unsqueeze(dim=0)))
+        next_state_unsafe = bool(map.check_brt_collision( np.expand_dims(potential_next_state, axis=0) ))
         # If relevant, override MPPI-chosen control action with safety control
-        safety_filter_activated = (
-            (safety_being_violated or next_state_unsafe) and safety_filter)
+        safety_filter_activated = ( (safety_being_violated or next_state_unsafe) and safety_filter)
         if safety_filter_activated:
             # Safety filter activated! Choose action using BRT safety controller
-            action = map.get_brt_safety_control(
-                system.state.unsqueeze(dim=0)).squeeze(dim=0)
+            action = map.get_brt_safety_control( np.expand_dims(system.state, axis=0) ).squeeze(axis=0)
         else:
             action = mppi_action
 
-        cost, temp = map.get_state_progress_and_obstacle_costs(
-            system.state.unsqueeze(dim=0), mppi_action.unsqueeze(dim=0))
-        cost = cost.squeeze(dim=0)
+        cost, temp = map.get_state_progress_and_obstacle_costs( np.expand_dims(system.state, axis=0), np.expand_dims(mppi_action, axis=0))
+        cost = cost.squeeze(axis=0)
         running_cost += cost
 
         timer_elapsed = time.perf_counter() - timer_start
@@ -74,30 +69,29 @@ def run_trial(system, map, controller, max_timesteps, safety_filter, save_sample
         # Pass action to system
         system.update_true_state(action)
 
-        print_progress = False
+        print_progress = True
         if print_progress:
-            if i % 10 == 0:
-                # , time elapsed: {timer_elapsed}")
-                print(f"   controller iteration {i}")
+            #if i % 10 == 0:
+            print(f"controller iteration {i}, time elapsed: {timer_elapsed}")
 
-        state = system.state.cpu()
+        state = system.state
 
         expr_data['t'].append(i * system.timestep)
         expr_data['actual_state'].append(state)
-        expr_data['actual_action'].append(action.cpu())
+        expr_data['actual_action'].append(action)
         expr_data['cost_of_step'].append(cost)
         expr_data['running_cost'].append(running_cost)
-        expr_data['sample_costs'].append(controller.cost_total.cpu())
-        expr_data['sample_weights'].append(controller.omega.cpu())
-        expr_data['nom_states'].append(controller.nominal_trajectory.cpu())
-        expr_data['nom_actions_after'].append(controller.U.cpu())
+        expr_data['sample_costs'].append(controller.cost_total)
+        expr_data['sample_weights'].append(controller.omega)
+        expr_data['nom_states'].append(controller.nominal_trajectory)
+        expr_data['nom_actions_after'].append(controller.U)
         expr_data['safety_being_violated'].append(safety_being_violated)
         expr_data['safety_filter_activated'].append(safety_filter_activated)
         expr_data['computation_time'].append(timer_elapsed)
         if save_samples:
-            expr_data['sampled_states'].append(controller.sampled_states.cpu())
+            expr_data['sampled_states'].append(controller.sampled_states)
             expr_data['sampled_actions'].append(
-                controller.sampled_actions.cpu())
+                controller.sampled_actions)
         if diagnostics:
             expr_data['sample_brt_values'].append(controller.sample_brt_values)
             expr_data['sample_brt_theta_deriv'].append(
@@ -114,7 +108,7 @@ def run_trial(system, map, controller, max_timesteps, safety_filter, save_sample
             return expr_data
 
         # Check if we've collided with an obstacle; if so, end trial
-        if map.check_obs_collision(state.unsqueeze(dim=0)):
+        if map.check_obs_collision(np.expand_dims(state, axis=0)):
             expr_data['crashed'] = True
             print('crashed')
             return expr_data
