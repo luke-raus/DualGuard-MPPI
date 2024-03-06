@@ -6,6 +6,7 @@ import cProfile
 
 import numpy as np
 import pickle
+import json
 
 
 if __name__ == "__main__":
@@ -29,7 +30,7 @@ if __name__ == "__main__":
     Q_running_state_cost_weights    = np.array([1., 1., 0.])
     action_cost_weights = 0.2
 
-    state_pairs = pickle.load(open("config_data/state_pairs_outside_disturbed_brt_dec_29.pkl", "rb"))
+    state_pairs = json.load(open("config_data/dubin_environment_state_pairs.json", "r"))
 
     brt_file = "config_data/brt_dubin_new_map_disturbed_aug_16_fixed_init_value.mat"
     brt_value_threshold = 0.01

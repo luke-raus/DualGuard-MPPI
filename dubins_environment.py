@@ -11,7 +11,7 @@ class ClutteredMap:
                  action_cost_weights,
                  init_state,
                  goal_state,
-                 brt_file=None,
+                 brt_file,
                  brt_value_threshold=0,
                  cost_type='obs'):
 
