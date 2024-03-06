@@ -11,14 +11,9 @@ class ClutteredMap:
                  action_cost_weights,
                  init_state,
                  goal_state,
-                 walls,
-                 map_data=None,
-                 map_pickle_file=None,
                  brt_file=None,
                  brt_value_threshold=0,
                  cost_type='obs'):
-
-        self.walls = walls   # Walls is either None or a scalar denoting +/- x/y location of walls
 
         self.progress_cost_weights       = running_state_cost_weights
         self.terminal_state_cost_weights = terminal_state_cost_weights
@@ -35,14 +30,6 @@ class ClutteredMap:
 
         self.cost_type = cost_type
         assert (self.cost_type=='obs') or (self.cost_type=='brt')
-
-        if (map_data is None):
-            # Load map_data dict from pickle if not provided
-            map_data = pickle.load( open( map_pickle_file, "rb" ) )
-        self.obs_x = np.array(map_data['obs_x'])
-        self.obs_y = np.array(map_data['obs_y'])
-        self.obs_r = np.array(map_data['obs_r'])
-        self.num_obstacles = len(self.obs_x)
 
         # --- Load BRT ---
 
@@ -61,10 +48,6 @@ class ClutteredMap:
 
         self.brt_value_threshold = brt_value_threshold
 
-        # See check_collision() for motivation of these variables
-        # self.obs_xy_unsqueezed = np.expand_dims( np.stack((self.obs_x, self.obs_y), axis=1), axis=0 )
-        # self.obs_r_sq_unsqueezed = np.expand_dims( self.obs_r, axis=0 )**2
-
 
     def get_control_costs(self, controls):
         return (self.action_cost_weights * controls**2).sum(axis=1)
@@ -77,7 +60,7 @@ class ClutteredMap:
 
         state_diffs_sq = (states - self.goal_state)**2                       # (K, nx)
         costs_per_state_dim = state_diffs_sq * self.progress_cost_weights    # (K, nx)
-        costs = costs_per_state_dim.sum(axis=1)                               # (K,)
+        costs = costs_per_state_dim.sum(axis=1)                              # (K,)
 
         is_in_goal_reward_dist = ( (state_diffs_sq[:,0] + state_diffs_sq[:,1])  <= self.goal_reward_dist**2 )   # bool (K,)
         costs[is_in_goal_reward_dist] = self.goal_reward_cost
@@ -113,52 +96,24 @@ class ClutteredMap:
             raise('Undefined obstacle type')
 
 
-
     def check_obs_collision(self, states):
         """
         states (K, nx=3) -> collision boolean (K,)
-        This code using broadcasting to avoid for-loop over number of obstacles
-        N = number of obstacle states (in this case, 2)
-        B = number of obstacles
         """
-
         return self.brt_obs_interp( states ) < 0.0
-
-        # states_expanded = np.expand_dims(states[:,0:2], axis=1)        # (K, 1, N)
-        # # self.obs_xy_unsqueezed...                                    # (1, B, N)
-
-        # squared_diff = (states_expanded - self.obs_xy_unsqueezed)**2   # (K, B, N)
-        # #print(squared_diff.shape)
-        # squared_dist = squared_diff.sum(axis=-1)                       # (K, B)
-
-        # state_inside_each_obs = squared_dist <= self.obs_r_sq_unsqueezed   # (K, B)
-        # state_collided = state_inside_each_obs.any(axis=1)                 # (K,)
-
-        # if self.walls is not None:
-        #     hit_wall = np.logical_or(np.abs(states[:,0])>self.walls, np.abs(states[:,1])>self.walls)
-        #     state_collided = np.logical_or(hit_wall, state_collided)
-        # # assert any_inside_obs.shape == (states.shape[0],)
-
-        # return state_collided
 
 
     def get_brt_value(self, states):
         """
         states (K, nx=3) -> BRT value (K,)
         """
-        return self.brt_value_interp( states )  # with torch_interpolations
+        return self.brt_value_interp( states )
 
 
     def check_brt_collision(self, states):
         """
         states (K, nx=3) -> collision boolean (K,)
         """
-        #values = torch.tensor(self.brt_value_interp(states))      # with scipy
-
-        # scipy implementation interpolates along last (second) axis of input, whereas the 
-        # unofficial torch version does so along first axis of input, hence the transpose
-        # see: https://github.com/sbarratt/torch_interpolations/issues/1
-
         return self.get_brt_value( states ) <= self.brt_value_threshold
 
 
@@ -177,7 +132,7 @@ class ClutteredMap:
         return opt_ctrl
 
 
-    def get_brt_safety_control(self, states):#, linvel=4.0):
+    def get_brt_safety_control(self, states):
         """
         states (K, nx=3) -> control (K, nu=2)
         """
