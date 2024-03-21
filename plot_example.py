@@ -1,22 +1,22 @@
 from plot_traj_with_brt import *
 from scipy.io import loadmat
 import pickle
+import json
 
-brt_tensor_dict = loadmat( "brt_dubin_new_map_disturbed_aug_16_highres.mat", simplify_cells=True )
-start_goal_data = pickle.load(open( "state_pairs_outside_disturbed_brt_dec_29.pkl", "rb" ) )
+brt_tensor_dict = loadmat( "config_data/brt_dubin_new_map_disturbed_aug_16_fixed_init_value.mat", simplify_cells=True )
+start_goal_data = json.load(open("config_data/dubin_environment_state_pairs.json", "r"))
 
 config_names  = ['Vanilla MPPI', 'Vanilla with BRT cost', 'filtered obs cost', 'OUR METHOD', 'Vanilla with samples at limits' ]
 
+trial = 0
+config = 4
+#expr_fname = f"results/results_trial_{trial}_config_{config}.pkl"
+expr_fname = "results/result_with_samples.pkl"
 
+expr_data = pickle.load( open( expr_fname, "rb" ) )
 
-trial = 55
-config = 0
-
-expr_data = pickle.load( open( f"results/results_trial_{trial}_config_{config}.pkl", "rb" ) )
-
-
-title  = f"Trial {trial}, {config_names[config]}"
-map_data  = pickle.load( open( "new_map_aug_12.pkl", "rb" ) )
+title  = "Experiment"
+map_data  = json.load( open( "config_data/dubin_environment_obstacles.json", "r" ) )
 
 
 plot_trajectory_with_brt_NEW(map_data, expr_data, brt_tensor_dict, start_goal_data,

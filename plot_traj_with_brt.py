@@ -1,5 +1,5 @@
 import plotly.graph_objects as go
-import torch
+import numpy as np
 
 
 def plotly_start_goal_location(start_state, goal_state):
@@ -42,19 +42,18 @@ def plotly_samples(sampled_states, sample_costs, sample_weights, max_samples=100
     # range_weight = max_weight - min(sample_weights)
 
     cost_threshold = 1e4
-    if torch.any(sample_costs < cost_threshold):
-        max_cost_below_thresh = torch.max(
-            sample_costs[sample_costs < cost_threshold])
+    if np.any(sample_costs < cost_threshold):
+        max_cost_below_thresh = np.max(sample_costs[sample_costs < cost_threshold])
     else:
-        max_cost_below_thresh = torch.max(sample_costs)
-    min_cost = torch.min(sample_costs)
+        max_cost_below_thresh = np.max(sample_costs)
+    min_cost = np.min(sample_costs)
     # to ensure nonzero...
     range_cost = max_cost_below_thresh - min_cost + 1e-8
     # Tensor to list...
     sample_costs = sample_costs.tolist()
 
     # max_samples = 30
-    nSamples = min(sampled_states.size(dim=0), max_samples)
+    nSamples = min(np.shape(sampled_states)[0], max_samples)
 
     for sample_index in range(nSamples):
 
@@ -100,14 +99,15 @@ def plot_trajectory_with_brt_NEW(map_data, expr_data, brt_dict, start_goal_data,
     # Boolean of whether or not sampled states exist in data
     samples = 'sampled_states' in expr_data.keys()
     if samples:
-        nSamples = min(expr_data['sampled_states'][0].size(dim=0), max_samples)
+        nSamples_saved = np.shape(expr_data['sampled_states'][0])[0]
+        nSamples = min(nSamples_saved, max_samples)
 
     # BRT metadata for grabbing closest slice
     # n_brt_thetas = brt_tensor.shape[-1]
     # brt_thetas = torch.linspace(start=-torch.pi, end=torch.pi, steps=n_brt_thetas)
     brt_x = brt_dict['grid_axes'][0]
     brt_y = brt_dict['grid_axes'][1]
-    brt_thetas = torch.tensor(brt_dict['grid_axes'][2])
+    brt_thetas = np.array(brt_dict['grid_axes'][2])
 
     fig_dict = {
         "data": [],
@@ -185,14 +185,14 @@ def plot_trajectory_with_brt_NEW(map_data, expr_data, brt_dict, start_goal_data,
         if show_brt:
             curr_theta = expr_data['actual_state'][t][2]
 
-            theta_ind = torch.sum(brt_thetas < curr_theta)
-            if torch.abs(curr_theta - brt_thetas[theta_ind-1]) < torch.abs(curr_theta - brt_thetas[theta_ind]):
+            theta_ind = np.sum(brt_thetas < curr_theta)
+            if np.abs(curr_theta - brt_thetas[theta_ind-1]) < np.abs(curr_theta - brt_thetas[theta_ind]):
                 theta_ind -= 1
 
             fd.append(go.Heatmap(
-                x=torch.linspace(-5.0, 5.0, len(brt_x.tolist())).tolist(),
-                y=torch.linspace(-5.0, 5.0, len(brt_y.tolist())).tolist(),
-                z=torch.transpose(torch.tensor(
+                x=np.linspace(-5.0, 5.0, len(brt_x.tolist())).tolist(),
+                y=np.linspace(-5.0, 5.0, len(brt_y.tolist())).tolist(),
+                z=np.transpose(np.tensor(
                     brt_dict['value'][:, :, theta_ind]), 0, 1),
                 colorscale='Blackbody',  # 'Aggrnyl',
                 name='BRT',
@@ -217,8 +217,8 @@ def plot_trajectory_with_brt_NEW(map_data, expr_data, brt_dict, start_goal_data,
     fig_dict["layout"]["sliders"] = [sliders_dict]
 
     # Get obstacle data from map
-    obs_xyr = [(map_data['obs_x'][i], map_data['obs_y'][i], map_data['obs_r'][i])
-               for i in range(len(map_data['obs_x']))]
+    obs_xyr = [(map_data['x'][i], map_data['y'][i], map_data['r'][i])
+               for i in range(len(map_data['x']))]
 
     # Plot obstacles and walls as layout objects (permanent across frames)
 
