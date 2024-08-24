@@ -1,4 +1,4 @@
-from run_experiments_omegaconf_flat import run_experiment
+from run_experiments import run_experiment
 
 from omegaconf import OmegaConf
 from pathlib import Path

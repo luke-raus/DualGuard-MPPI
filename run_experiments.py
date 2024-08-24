@@ -1,7 +1,7 @@
 from controller_mppi import MPPI
 from dubins_environment import ClutteredMap
 from dubins_dynamics import DubinsCarFixedVel
-from run_trial_pandas import run_trial
+from run_trial import run_trial
 
 # Used to load a dot-accessible config dict from .yaml file (& cmd-line args)
 from omegaconf import OmegaConf
