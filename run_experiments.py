@@ -1,121 +1,84 @@
 from controller_mppi import MPPI
 from dubins_environment import ClutteredMap
 from dubins_dynamics import DubinsCarFixedVel
-from run_trial import run_trial
-import cProfile
+from run_trial_pandas import run_trial
+
+# Used to load a dot-accessible config dict from .yaml file (& cmd-line args)
+from omegaconf import OmegaConf
+from pathlib import Path
 
 import numpy as np
-import pickle
-import json
 
 
-if __name__ == "__main__":
+def run_experiment(config_filename, results_filepath):
 
-    #profiler = cProfile.Profile()
+    config = OmegaConf.load(config_filename)
 
-    experiment_time_horizon = 15   # sec
+    system = DubinsCarFixedVel(
+        config.timestep,
+        config.dynamics_linvel,
+        np.array(config.init_state)
+    )
 
-    timestep = 0.02
-    max_timesteps = 30 #round(experiment_time_horizon / timestep)
+    environment = ClutteredMap(
+        config.Q_running_state_cost_weights,
+        config.Phi_terminal_state_cost_weights,
+        config.action_cost_weights,
+        init_state = config.init_state,
+        goal_state = config.goal_state,
+        brt_file   = config.brt_filename,
+        brt_value_threshold = config.safety_filter_value_threshold,
+        cost_type = config.cost_from_obstacles_or_BRT,
+    )
 
-    # Dyn. sys. definition
-    angvel_min, angvel_max = (-6.0, 6.0)   # rad/s
-    angvel_noise_mean = 0.0
-    linvel = 4.0                           # m/s
+    controller = MPPI(
+        system.next_states,
+        environment.get_state_progress_and_obstacle_costs,
+        nx          = system.nx,
+        num_samples = config.mppi_samples,
+        horizon     = config.mppi_horizon,
+        noise_mu    = config.mppi_angvel_control_noise_mean,
+        noise_sigma = (config.mppi_angvel_control_noise_stddev)**2,
+        u_min       = config.dynamics_angvel_min,
+        u_max       = config.dynamics_angvel_max,
+        # U_init = torch.zeros(MPPI_HORIZON, n_inputs),
+        terminal_state_cost = environment.get_terminal_state_cost,
+        noise_abs_cost      = True,
+        lambda_             = config.mppi_temperature,
+        filter_nom_traj     = config.apply_safety_filter_to_nominal_trajectory,
+        filter_samples      = config.apply_safety_filter_to_samples,
+        brt_safety_query    = environment.check_brt_collision,
+        brt_opt_ctrl_query  = environment.get_brt_safety_control,
+        brt_value_query     = environment.get_brt_value,
+        brt_theta_deriv_query = environment.get_brt_theta_deriv,
+        diagnostics = False,
+    )
 
-    angvel_noise_stddev = 8.0
+    overview, trajectory, sample_details = run_trial(
+        system, environment, controller,
+        max_timesteps = int(config.trial_max_duration / config.timestep),
+        safety_filter = config.apply_safety_filter_to_samples,
+        save_samples = config.save_samples,
+        diagnostics = False,
+    )
 
-    # unused currently...
-    Phi_terminal_state_cost_weights = np.array([0., 0., 0.])
-    Q_running_state_cost_weights    = np.array([1., 1., 0.])
-    action_cost_weights = 0.2
+    save_experiment_results(results_filepath, overview, trajectory, sample_details)
 
-    state_pairs = json.load(open("config_data/dubin_environment_state_pairs.json", "r"))
+    print(f'Experiment complete')
 
-    brt_file = "config_data/brt_dubin_new_map_disturbed_aug_16_fixed_init_value.mat"
-    brt_value_threshold = 0.01
 
-    placeholder_init_state = np.array([0., 0., 0.])
+def save_experiment_results(exp_name, overview, trajectory, sample_details):
+    base_dir = Path('results') / exp_name
+    base_dir.mkdir(parents=True, exist_ok=True)
+    overview_fname       = base_dir / 'result_overview.yaml'
+    trajectory_fname     = base_dir / 'result_trajectory.csv'
+    sample_details_fname = base_dir / 'result_sample_details.XXX'
 
-    system = DubinsCarFixedVel(timestep,
-                               linvel,
-                               placeholder_init_state)
-    n_states = system.nx
-    n_inputs = system.nu
+    # Save overview as .yaml
+    OmegaConf.save(OmegaConf.create(overview), f=overview_fname)
 
-    horizon = 25
-    mppi_temperature = 5.0
+    # Save trajectory as .csv
+    trajectory.to_csv(trajectory_fname, index=False)
 
-    samples_to_try = [5, 10, 15, 30, 60, 125, 250, 500, 1000, 2000, 5000, 10000]
-    avg_comp_time = []
-
-    for num_samp in samples_to_try:
-
-        N_MPPI_SAMPLES = num_samp
-
-        trial = 1
-        #filter_samples, safety_filter, cost_type = False, False, 'obs'
-        #filter_samples, safety_filter, cost_type = True, False, 'obs'
-        #filter_samples, safety_filter, cost_type = True, False, 'brt'
-        filter_samples, safety_filter, cost_type = False, False, 'brt'
-
-        filter_nom_traj = False
-
-        init_state = np.array(state_pairs['init'][trial])
-        goal_state = np.array(state_pairs['goal'][trial])
-
-        system.state = init_state
-
-        # FIGURE OUT NUMPY RANDOM SEED!
-
-        #torch.manual_seed(trial)
-        #torch.use_deterministic_algorithms(True)
-
-        map = ClutteredMap(
-            Q_running_state_cost_weights,
-            Phi_terminal_state_cost_weights,
-            action_cost_weights,
-            init_state=init_state,
-            goal_state=goal_state,
-            brt_file=brt_file,
-            brt_value_threshold=brt_value_threshold,
-            cost_type=cost_type)
-
-        controller = MPPI(
-            system.next_states,
-            map.get_state_progress_and_obstacle_costs,
-            n_states,
-            num_samples=N_MPPI_SAMPLES,
-            horizon=horizon,
-            noise_mu=np.array(angvel_noise_mean),
-            noise_sigma=np.array([angvel_noise_stddev**2]),
-            u_min=np.array([angvel_min]),
-            u_max=np.array([angvel_max]),
-            # U_init = torch.zeros(MPPI_HORIZON, n_inputs),
-            terminal_state_cost=map.get_terminal_state_cost,
-            noise_abs_cost=True,
-            lambda_=mppi_temperature,
-            filter_nom_traj=filter_nom_traj,
-            filter_samples=filter_samples,
-            brt_safety_query=map.check_brt_collision,
-            brt_opt_ctrl_query=map.get_brt_safety_control,
-            brt_value_query=map.get_brt_value,
-            brt_theta_deriv_query=map.get_brt_theta_deriv,
-            diagnostics=False)  # enable_mppi_value_diagnostics
-
-        # --- RUN EXPERIMENT ---
-        # profiler.enable()
-        expr_data = run_trial(system, map, controller, max_timesteps,
-                            safety_filter, save_samples=False, diagnostics=False)
-        
-        comp_time = np.mean(expr_data['computation_time'])
-
-        avg_comp_time.append( comp_time )
-        # profiler.disable()
-        # profiler.dump_stats(f'profile_results/vanilla_{N_MPPI_SAMPLES}_samp_nonrefactor.prof')
-        # profiler.print_stats()
-
-        print(f"Done {N_MPPI_SAMPLES}: {comp_time}")
-    
-    print(samples_to_try)
-    print(avg_comp_time)
+    # Save sample_details
+    pass

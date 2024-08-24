@@ -1,6 +1,6 @@
 import numpy as np
-import pickle
-from scipy.io import loadmat
+import h5py
+# from scipy.io import loadmat
 from scipy.interpolate import RegularGridInterpolator as SciPyRGI
 
 
@@ -31,16 +31,25 @@ class ClutteredMap:
         self.cost_type = cost_type
         assert (self.cost_type=='obs') or (self.cost_type=='brt')
 
-        # --- Load BRT ---
+        # --- Load BRT from .hdf5 file ---
 
-        brt_mat = loadmat(brt_file, simplify_cells=True)
+        with h5py.File('brt.hdf5', 'r') as hdf_file:
+            # Load the arrays from the file
+            self.obs_value       = hdf_file['obstacle_grid'][:]
+            self.brt_value       = hdf_file['brt_value_grid'][:]
+            self.brt_theta_deriv = hdf_file['brt_theta_deriv_grid'][:]
 
-        self.obs_value       = brt_mat['init_value']
+            brt_grid_axis_0 = hdf_file['brt_axis_0'][:]
+            brt_grid_axis_1 = hdf_file['brt_axis_1'][:]
+            brt_grid_axis_2 = hdf_file['brt_axis_2'][:]
+            self.brt_grid_axes = (brt_grid_axis_0, brt_grid_axis_1, brt_grid_axis_2)
 
-        self.brt_value       = brt_mat['value']
-        self.brt_theta_deriv = brt_mat['theta_deriv']
-
-        self.brt_grid_axes = tuple( brt_mat['grid_axes'] )     # with scipy
+        # --- Load .mat file ---
+        # brt_mat = loadmat(brt_file, simplify_cells=True)
+        # self.obs_value       = brt_mat['init_value']
+        # self.brt_value       = brt_mat['value']
+        # self.brt_theta_deriv = brt_mat['theta_deriv']
+        # self.brt_grid_axes = tuple( brt_mat['grid_axes'] )     # with scipy
 
         self.brt_obs_interp         = SciPyRGI(self.brt_grid_axes, self.obs_value, bounds_error=False)
         self.brt_value_interp       = SciPyRGI(self.brt_grid_axes, self.brt_value, bounds_error=False)

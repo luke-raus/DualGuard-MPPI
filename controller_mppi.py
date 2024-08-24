@@ -50,21 +50,32 @@ class MPPI():
         self.K = num_samples  # N_SAMPLES
         self.T = horizon      # TIMESTEPS
 
+        # If noise_mu is scalar, we turn it into 1-d numpy array
+        self.noise_mu = noise_mu
+        if isinstance(noise_mu, (float, int)):
+            self.noise_mu = np.array([noise_mu])
+
+        # If noise_sigma is scalar, we turn it into 2-d numpy array
+        self.noise_sigma = noise_sigma
+        if isinstance(self.noise_sigma, (float, int)):
+            self.noise_sigma = np.array([[noise_sigma]])            
+
+
         # dimensions of state and control
         self.nx = nx
-        self.nu = 1 if len(noise_sigma.shape) == 0 else noise_sigma.shape[0]
+        self.nu = 1 if len(self.noise_sigma.shape) == 0 else self.noise_sigma.shape[0]
         self.lambda_ = lambda_
+
+        # handle 1D edge case
+        if self.nu == 1:
+            noise_mu = np.array([noise_mu])
+            noise_sigma = np.array([noise_sigma])
 
         if noise_mu is None:
             noise_mu = np.zeros(self.nu)
 
         if u_init is None:
             u_init = np.zeros_like(noise_mu)
-
-        # handle 1D edge case
-        if self.nu == 1:
-            noise_mu = np.array([noise_mu])
-            noise_sigma = np.array([noise_sigma])
 
         # bounds
         self.u_min = u_min
@@ -80,8 +91,6 @@ class MPPI():
                 self.u_min = np.array(self.u_min)
             self.u_max = -self.u_min
 
-        self.noise_mu = noise_mu
-        self.noise_sigma = noise_sigma
         if self.noise_sigma.ndim == 1:
             self.noise_sigma_inv = np.linalg.inv(np.expand_dims(self.noise_sigma, axis=0))
         else:
