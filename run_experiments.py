@@ -2,6 +2,7 @@ from controller_mppi import MPPI
 from dubins_environment import ClutteredMap
 from dubins_dynamics import DubinsCarFixedVel
 from run_trial import run_trial
+from experiment_result import ExperimentResult
 
 # Used to load a dot-accessible config dict from .yaml file (& cmd-line args)
 from omegaconf import OmegaConf
@@ -54,21 +55,20 @@ def run_experiment(config_filename, results_filepath):
         diagnostics = False,
     )
 
-    overview, trajectory, sample_details = run_trial(
+    result = run_trial(
         system, environment, controller,
         max_timesteps = int(config.trial_max_duration / config.timestep),
         safety_filter = config.apply_safety_filter_to_samples,
+        results_filepath = results_filepath,
         save_samples = config.save_samples,
-        diagnostics = False,
     )
-
-    save_experiment_results(results_filepath, overview, trajectory, sample_details)
+    result.save_to_files()
 
     print(f'Experiment complete')
 
 
 def save_experiment_results(exp_name, overview, trajectory, sample_details):
-    base_dir = Path('results') / exp_name
+    base_dir = exp_name #Path('experiments') / exp_name
     base_dir.mkdir(parents=True, exist_ok=True)
     overview_fname       = base_dir / 'result_overview.yaml'
     trajectory_fname     = base_dir / 'result_trajectory.csv'

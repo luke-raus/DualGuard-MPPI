@@ -1,11 +1,14 @@
 import time
 import numpy as np
 import pandas as pd
+from experiment_result import ExperimentResult
 
-def run_trial(system, map, controller, max_timesteps, safety_filter, save_samples=False, diagnostics=False):
+def run_trial(system, map, controller, max_timesteps, safety_filter, results_filepath, save_samples=False):
     """
     safety_filter is boolean of whether to invoke reachability-based safety filter
     """
+
+    result = ExperimentResult(results_filepath, save_samples=save_samples)
 
     goal_state = map.goal_state
     goal_state_threshold = 0.1
@@ -18,13 +21,15 @@ def run_trial(system, map, controller, max_timesteps, safety_filter, save_sample
     history = []
     for i in range(max_timesteps):
 
-        # expr_data['nom_actions_before'].append(controller.U)
+        # Capture nominal trajectory before MPPI runs
+        nominal_traj_controls_before = controller.U
+        nominal_traj_states_before = controller.nominal_trajectory
+
 
         # Check whether current system state is unsafe
         safety_being_violated = bool(map.check_brt_collision(system.state))
 
         # Run MPPI controller anyways, but don't necessarily pass action to state
-
         timer_start = time.perf_counter()
         mppi_action = controller.command(system.state)
 
@@ -55,17 +60,28 @@ def run_trial(system, map, controller, max_timesteps, safety_filter, save_sample
 
         state = system.state
 
-        history.append( {
-            't': i * system.timestep,
-            'state': state,
-            'control_taken': action,
-            'cost_of_step': cost,
-            'running_cost': running_cost,
-            'safety_being_violated': safety_being_violated,
-            'safety_filter_activated': safety_filter_activated,
-            'control_computation_time': timer_elapsed,
-        } )
+        result.capture_timestep(
+            index = i,
+            time = i * system.timestep,
+            current_state_measurement = state,
+            current_state_measurement_is_unsafe = safety_being_violated,
+            running_cost_of_traj_incl_current_state = running_cost,
+            nominal_traj_controls_before = nominal_traj_controls_before,
+            nominal_traj_states_before = nominal_traj_states_before,
+            sample_controls = controller.sampled_actions,
+            sample_states = controller.sampled_states,
+            sample_safety_filter_activated = controller.sample_safety_filter,
+            sample_costs = controller.cost_total,
+            sample_brt_values = controller.sample_brt_values,
+            sample_brt_theta_deriv = controller.sample_brt_theta_deriv,
+            nominal_traj_controls_after = controller.U,
+            nominal_traj_states_after = controller.nominal_trajectory,
+            control_compute_time = timer_elapsed,
+            control_chosen = action,
+            control_overridden_by_safety_filter = safety_filter_activated
+        )
 
+        # if close_to_goal():
         # Check if we've reached goal state within threshold; if so, end trial
         dist_to_goal_state_sq = float(
             (state[0]-goal_state[0])**2 + (state[1]-goal_state[1])**2)
@@ -80,17 +96,14 @@ def run_trial(system, map, controller, max_timesteps, safety_filter, save_sample
             print('crashed')
             break
 
-    # We've run out of experiment timesteps without finishing or crashing, so end trial
-    history = pd.DataFrame(history)
-    overview = {
-        'crashed':       crashed,
-        'goal_reached':  goal_reached,
-        'time_elapsed':  i * system.timestep,
-        'total_cost':    round(running_cost, 5),
-        # these calculations give np.float64, which omegaconf dislikes
-        'control_compute_time_avg': round(float(history['control_computation_time'].mean()), 6),
-        'control_compute_time_std': round(float(history['control_computation_time'].std()),  6),
-    }
-    sample_details = None
+    result.capture_summary(
+        crashed = crashed,
+        goal_reached = goal_reached,
+        time_elapsed = i*system.timestep,
+        total_cost = round(running_cost, 5),
+        terminal_state = system.state,
+        control_compute_time_avg = False, # round(float(history['control_computation_time'].mean()), 6),
+        control_compute_time_std = False, # round(float(history['control_computation_time'].std()),  6)
+    )
 
-    return overview, history, sample_details
+    return result

@@ -33,7 +33,7 @@ class ClutteredMap:
 
         # --- Load BRT from .hdf5 file ---
 
-        with h5py.File('brt.hdf5', 'r') as hdf_file:
+        with h5py.File('brt_dubins_cluttered_0.hdf5', 'r') as hdf_file:
             # Load the arrays from the file
             self.obs_value       = hdf_file['obstacle_grid'][:]
             self.brt_value       = hdf_file['brt_value_grid'][:]

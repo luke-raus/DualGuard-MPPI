@@ -122,14 +122,15 @@ class MPPI():
 
         self.filter_samples = filter_samples
         self.filter_nom_traj = filter_nom_traj
-        if self.filter_samples or self.filter_nom_traj:
-            self.brt_safety_query = brt_safety_query
-            self.brt_opt_ctrl_query = brt_opt_ctrl_query
+        # if self.filter_samples or self.filter_nom_traj:
+        self.brt_safety_query = brt_safety_query
+        self.brt_opt_ctrl_query = brt_opt_ctrl_query
+
+        self.brt_value_query = brt_value_query
+        self.brt_theta_deriv_query = brt_theta_deriv_query
         
-        self.diagnostics = diagnostics
-        if self.diagnostics:
-            self.brt_value_query = brt_value_query
-            self.brt_theta_deriv_query = brt_theta_deriv_query
+        # Need to do this so we can have nominal_trajectory right when initialized
+        self.nominal_trajectory = self._get_nominal_trajectory()
 
     def _dynamics(self, state, u, t):
         return self.F(state, u)
@@ -199,10 +200,10 @@ class MPPI():
 
         sampled_states = [state]
         sampled_actions = []
-        if self.diagnostics and self.filter_samples:
-            sample_brt_values = []
-            sample_safety_filter = []
-            sample_brt_theta_deriv = []
+        #if self.diagnostics and self.filter_samples:
+        sample_brt_values = []
+        sample_safety_filter = []
+        sample_brt_theta_deriv = []
 
         has_reached_goal = np.zeros_like(cost_total)
         for t in range(T):
@@ -220,10 +221,9 @@ class MPPI():
                 state[~next_state_is_unsafe,:] = potential_next_state[~next_state_is_unsafe,:]
                 state[ next_state_is_unsafe,:] = self._dynamics(state[ next_state_is_unsafe,:], u[next_state_is_unsafe,:], t)
 
-                if self.diagnostics:
-                    sample_brt_values.append( self.brt_value_query(state) )
-                    sample_safety_filter.append( next_state_is_unsafe )
-                    sample_brt_theta_deriv.append( self.brt_theta_deriv_query(state) )
+                sample_brt_values.append( self.brt_value_query(state) )
+                sample_safety_filter.append( next_state_is_unsafe )
+                sample_brt_theta_deriv.append( self.brt_theta_deriv_query(state) )
             else:
                 # Apply potentially-filtered controls to get next state
                 start_time = time.perf_counter()
@@ -253,10 +253,10 @@ class MPPI():
 
 
         # if self.diagnostics:
-        #     # These are:     K x T x 1
-        #     self.sample_brt_values       = np.concatenate(sample_brt_values,      axis=-1)
-        #     self.sample_safety_filter    = np.concatenate(sample_safety_filter,   axis=-1)
-        #     self.sample_brt_theta_deriv  = np.concatenate(sample_brt_theta_deriv, axis=-1)
+        # These are:     K x T x 1
+        self.sample_brt_values       = np.concatenate(sample_brt_values,      axis=-1)
+        self.sample_safety_filter    = np.concatenate(sample_safety_filter,   axis=-1)
+        self.sample_brt_theta_deriv  = np.concatenate(sample_brt_theta_deriv, axis=-1)
 
 
         # action perturbation cost

@@ -5,7 +5,7 @@ from pathlib import Path
 import itertools
 
 
-num_samples_opts    = [20, 36, 50, 100, 250, 500, 1000, 2000, 5000]
+num_samples_opts    = [20, 36, 50] #, 100, 250, 500, 1000, 2000, 5000]
 filter_samples_opts = [True, False]
 cost_type_opts      = ['obs', 'brt']
 
