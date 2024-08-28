@@ -1,6 +1,6 @@
 from omegaconf import OmegaConf
 from pathlib import Path
-import numpy as np
+import numpy as np   # only needed for type-checking
 import h5py
 
 
@@ -17,33 +17,27 @@ class ExperimentResult:
 
     def capture_timestep(
         self,
-        # What we know about current state
         index: int,
         time: float,
         current_state_measurement: np.ndarray,
         current_state_measurement_is_unsafe: bool,
         running_cost_of_traj_incl_current_state: float,
-        # MPPI starts with a nominal control sequence
         nominal_traj_controls_before: np.ndarray,
         nominal_traj_states_before: np.ndarray,
-        # MPPI internal details: optional to save to file,
-        #    but must include them in case we want to save at some point
-        #    Remember: Controls -> states (via simulation) -> costs, brt_values (via lookup/computation)
         sample_controls: np.ndarray,
         sample_states: np.ndarray,
         sample_safety_filter_activated: np.ndarray,
         sample_costs: np.ndarray,
         sample_brt_values: np.ndarray,
         sample_brt_theta_deriv: np.ndarray,
-        # MPPI results in a nominal control sequence
         nominal_traj_controls_after: np.ndarray,
         nominal_traj_states_after: np.ndarray,
-        # Controller runtime
         control_compute_time: float,
-        # MPPI (or filter) results in single selected control
         control_chosen: np.ndarray,
         control_overridden_by_safety_filter: bool,
     ) -> None:
+        # See results_config.yaml for explanation/grouping of parameters
+
         # Capture all arguments (since they're mandatory!)
         #    in a dict with locals(), but exclude 'self'
         timestep = locals()
@@ -95,9 +89,18 @@ class ExperimentResult:
     def load_summary(self) -> None:
         self.result_summary = OmegaConf.load(self.summary_fname)
 
-    def load_timestep(self, timestep_index:int) -> dict:
+    def get_summary(self) -> dict:
+        self.load_summary()
+        return self.result_summary
+
+    def get_overall_trajectory(self) -> np.ndarray:
+        with h5py.File(self.details_fname, 'r') as f:
+            traj = f['state_trajectory'][:]
+        return traj
+
+    def get_timestep_data(self, timestep_index:int) -> dict:
         step_data = {}
-        with h5py.File(self.details_fname) as f:
+        with h5py.File(self.details_fname, 'r') as f:
             group = f[f'step_{timestep_index}']
             for key in group.keys():
                 step_data[key] = group[key][()]
@@ -105,6 +108,5 @@ class ExperimentResult:
 
     def get_num_timesteps(self) -> int:
         with h5py.File(self.details_fname, 'r') as f:
-            # Assuming each top-level entry is a timestep
-            timesteps = f.keys()  # if .... == 'step_'
-            return len(timesteps)
+            timesteps = [k for k in f.keys() if k.startsith('step_')]
+        return len(timesteps)
