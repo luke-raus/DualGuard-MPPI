@@ -101,9 +101,9 @@ class Experiment:
             nominal_traj_controls_before = controller.U
             nominal_traj_states_before = controller.nominal_trajectory
 
-
-            # Check whether current system state is unsafe
-            safety_being_violated = bool(map.check_brt_collision(system.state))
+            # Capture state before controller runs
+            measured_state = system.state
+            measured_state_is_unsafe = bool(map.check_brt_collision(system.state))
 
             # Run MPPI controller anyways, but don't necessarily pass action to state
             timer_start = time.perf_counter()
@@ -113,7 +113,7 @@ class Experiment:
                 system.state, mppi_action)
             next_state_unsafe = bool(map.check_brt_collision( np.expand_dims(potential_next_state, axis=0) ))
             # If relevant, override MPPI-chosen control action with safety control
-            safety_filter_activated = ( (safety_being_violated or next_state_unsafe) and safety_filter)
+            safety_filter_activated = ( (measured_state_is_unsafe or next_state_unsafe) and safety_filter)
             if safety_filter_activated:
                 # Safety filter activated! Choose action using BRT safety controller
                 action = map.get_brt_safety_control( np.expand_dims(system.state, axis=0) ).squeeze(axis=0)
@@ -134,13 +134,11 @@ class Experiment:
                 #if i % 10 == 0:
                 print(f"controller iteration {i}, time elapsed: {timer_elapsed:.6f}")
 
-            state = system.state
-
             result.capture_timestep(
                 index = i,
                 time = i * system.timestep,
-                current_state_measurement = state,
-                current_state_measurement_is_unsafe = safety_being_violated,
+                current_state_measurement = measured_state,
+                current_state_measurement_is_unsafe = measured_state_is_unsafe,
                 running_cost_of_traj_incl_current_state = running_cost,
                 nominal_traj_controls_before = nominal_traj_controls_before,
                 nominal_traj_states_before = nominal_traj_states_before,
@@ -156,6 +154,8 @@ class Experiment:
                 control_chosen = action,
                 control_overridden_by_safety_filter = safety_filter_activated
             )
+
+            state = system.state
 
             # if close_to_goal():
             # Check if we've reached goal state within threshold; if so, end trial

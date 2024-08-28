@@ -5,7 +5,7 @@ import h5py
 
 
 class ExperimentResult:
-    def __init__(self, experiment_dir:str, save_samples:bool=True):
+    def __init__(self, experiment_dir, save_samples:bool=True):
         # self.experiment_dir = experiment_dir
         self.summary_fname = Path(experiment_dir) / 'result_summary.yaml'
         self.details_fname = Path(experiment_dir) / 'result_details.hdf5'
@@ -86,7 +86,11 @@ class ExperimentResult:
                                    'sample_costs', 'sample_brt_values', 'sample_brt_theta_deriv']):
                         group.create_dataset(key, data=data)
 
-            # Consider saving overall state trajectory sequence in its own dataset
+            # Save overall state trajectory sequence in its own dataset
+            state_trajectory = [ step['current_state_measurement'] for step in self.timesteps ]
+            # Since the above states are measured at the start of a controller iteration, append last state
+            state_trajectory.append(self.summary.terminal_state)
+            hdf_file.create_dataset('state_trajectory', data=state_trajectory)
 
     def load_summary(self) -> None:
         self.result_summary = OmegaConf.load(self.summary_fname)
