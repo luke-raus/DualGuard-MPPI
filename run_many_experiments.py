@@ -1,8 +1,8 @@
-from run_experiments import run_experiment
-
 from omegaconf import OmegaConf
 from pathlib import Path
 import itertools
+
+from experiment import Experiment
 
 
 num_samples_opts    = [20, 36, 50] #, 100, 250, 500, 1000, 2000, 5000]
@@ -46,7 +46,9 @@ for param_combo in param_combos:
 for experiment_dir in sorted(experiments_path.iterdir()):
 
     print(f'Running experiment {experiment_dir}')
-    run_experiment(experiment_dir/'config.yaml', experiment_dir)
+    experiment = Experiment(experiment_dir)
+    experiment.initialize()
+    experiment.run_and_save()
 
 print('All done!')
 
