@@ -19,7 +19,7 @@ class MPPI():
                 u_min=None,
                 u_max=None,
                 u_init=None,
-                U_init=None,
+                U_init_is_mean=None,
                 u_per_command=1,
                 sample_null_action=False,
                 noise_abs_cost=True,
@@ -43,7 +43,8 @@ class MPPI():
         :param u_min: (nu) minimum values for each dimension of control to pass into dynamics
         :param u_max: (nu) maximum values for each dimension of control to pass into dynamics
         :param u_init: (nu) what to initialize new end of trajectory control to be; defaults to zero
-        :param U_init: (T x nu) initial control sequence; defaults to noise
+        :param U_init_is_mean: is U_init equal to the mean control (e.g. zero)? Noise otherwise
+        #:param U_init: (T x nu) initial control sequence; defaults to noise
         :param sample_null_action: Whether to explicitly sample a null action (bad for starting in a local minima)
         :param noise_abs_cost: Whether to use the absolute value of the action noise to avoid bias when all states have the same cost
         """
@@ -99,10 +100,11 @@ class MPPI():
         self.numpy_rand_gen = np.random.default_rng(seed=None)
 
         # T x nu control sequence
-        self.U = U_init
         self.u_init = u_init
 
-        if self.U is None:
+        if U_init_is_mean:
+            self.U = np.full((self.T, self.nu), self.noise_mu)   # [T * nu]
+        else:
             # TODO Need noise_mu to be 1-dimensional & noise_sigma to be 2-dimensional
             # This works for now because noise_mu is scalar & noise_sigma is 1d
             some_noise = self.numpy_rand_gen.multivariate_normal(self.noise_mu, self.noise_sigma, size=(self.T) )
@@ -183,7 +185,7 @@ class MPPI():
         # reduce dimensionality if we only need the first command
         if self.u_per_command == 1:
             action = action[0]
-        
+
         return action
 
     def _compute_rollout_costs(self):

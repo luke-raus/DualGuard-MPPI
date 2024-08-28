@@ -17,8 +17,9 @@ timestep: 0.02      # dynamics update time interval (s)
 mppi_samples: 500        # Number of samples to forward-simulate
 mppi_horizon: 25         # How many dynamics steps to propagate per sample
 mppi_temperature: 5.0    # Higher means ____?
-mppi_angvel_control_noise_mean: 0.0     # mean of control noise (rad/s)
-mppi_angvel_control_noise_stddev: 8.0   # stddev of control noise (rad/s)
+mppi_angvel_control_noise_mean:    0.0   # mean of control noise (rad/s)
+mppi_angvel_control_noise_stddev:  8.0   # stddev of control noise (rad/s)
+mppi_initial_control_is_mean:      False # if True, initial control is noise_mean; else random
 
 # brt & safety filter params
 brt_filename: brt_dubins_cluttered_1.hdf5
@@ -26,7 +27,7 @@ safety_filter_type: least_restrictive
 safety_filter_value_threshold: 0.01
 
 # dynamics params
-dynamics: dubins
+dynamics_name: dubins
 state_dim: 3
 state_labels: ['x', 'y', 'theta']
 control_dim: 1
