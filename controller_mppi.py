@@ -170,10 +170,7 @@ class MPPI():
         self.U = self.U + perturbations
         assert self.U.shape == (self.T, 1)
 
-        start_time = time.perf_counter()
-        self.nominal_trajectory = self._get_nominal_trajectory()   # DELETE TIMING
-        end_time = time.perf_counter()
-        #print(f"Time to get nominal trajectory: {end_time-start_time}")
+        self.nominal_trajectory = self._get_nominal_trajectory()
 
         # NOTE: Probably makes more sense to filter nominal trajectory at end (?)
 
@@ -202,7 +199,6 @@ class MPPI():
 
         sampled_states = [state]
         sampled_actions = []
-        #if self.diagnostics and self.filter_samples:
         sample_brt_values = []
         sample_safety_filter = []
         sample_brt_theta_deriv = []
@@ -227,14 +223,8 @@ class MPPI():
                 sample_safety_filter.append( next_state_is_unsafe )
                 sample_brt_theta_deriv.append( self.brt_theta_deriv_query(state) )
             else:
-                # Apply potentially-filtered controls to get next state
-                start_time = time.perf_counter()
-
                 # DYNAMICS
-                state = self._dynamics(state, u, t)   # DELETE PROFILING!
-
-                end_time = time.perf_counter()
-                #print(f"Time to do dynamics on rollouts: {end_time-start_time}")
+                state = self._dynamics(state, u, t)
 
             c, is_in_goal = self._running_cost(state, u, t)
 
@@ -253,13 +243,16 @@ class MPPI():
         sampled_actions = np.stack(sampled_actions, axis=-2)
         sampled_states  = np.stack(sampled_states,  axis=-2)    # NOTE: States is actually K,(T+1),nx 
 
-
-        # if self.diagnostics:
-        # These are:     K x T x 1
-        self.sample_brt_values       = np.concatenate(sample_brt_values,      axis=-1)
-        self.sample_safety_filter    = np.concatenate(sample_safety_filter,   axis=-1)
-        self.sample_brt_theta_deriv  = np.concatenate(sample_brt_theta_deriv, axis=-1)
-
+        if self.filter_samples:
+            # These are:     K x T x 1
+            self.sample_brt_values       = np.concatenate(sample_brt_values,      axis=-1)
+            self.sample_safety_filter    = np.concatenate(sample_safety_filter,   axis=-1)
+            self.sample_brt_theta_deriv  = np.concatenate(sample_brt_theta_deriv, axis=-1)
+        else:
+            self.sample_brt_values       = []
+            self.sample_safety_filter    = []
+            self.sample_brt_theta_deriv  = []
+        
 
         # action perturbation cost
         if self.terminal_state_cost:
@@ -324,10 +317,7 @@ class MPPI():
         #print(f"nom traj state: {states[0,:].size()}, u: {self.U[0,:].size()}") 
 
         for i in range(self.T):
-            start_time = time.perf_counter()
             states[i+1,:] = self._dynamics(states[i,:], self.U[i,:], i)
-            end_time = time.perf_counter()
-            #print(f"Time to get nominal trajectory step: {end_time-start_time}")
         return states
 
     def _slice_control(self, t):

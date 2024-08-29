@@ -18,6 +18,7 @@ sample_controls                 # np.ndarray [K * T * nu]
 sample_states                   # np.ndarray [K * T * nx]
 sample_safety_filter_activated  # np.ndarray [K * T]
 sample_costs                    # np.ndarray [K]
+sample_weights                  # np.ndarray [K]
 sample_brt_values               # np.ndarray [K * T * nx]
 sample_brt_theta_deriv          # np.ndarray [K * T * nx]
 

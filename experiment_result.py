@@ -28,6 +28,7 @@ class ExperimentResult:
         sample_states: np.ndarray,
         sample_safety_filter_activated: np.ndarray,
         sample_costs: np.ndarray,
+        sample_weights: np.ndarray,
         sample_brt_values: np.ndarray,
         sample_brt_theta_deriv: np.ndarray,
         nominal_traj_controls_after: np.ndarray,
@@ -70,14 +71,15 @@ class ExperimentResult:
         # Save summary as human-readable .yaml
         OmegaConf.save(self.summary, f=self.summary_fname)
 
+        sample_dataset_names = ['sample_controls', 'sample_states', 'sample_safety_filter_activated',
+                                'sample_costs', 'sample_weights', 'sample_brt_values', 'sample_brt_theta_deriv']
         # Save timesteps as groups in hdf5 file
         with h5py.File(self.details_fname, 'w') as hdf_file:
             for timestep in self.timesteps:
                 index = timestep['index']
                 group = hdf_file.create_group(f'step_{index}')
                 for key, data in timestep.items():
-                    if (not self.save_samples) and (key not in ['sample_controls', 'sample_states', 'sample_safety_filter_activated',
-                                   'sample_costs', 'sample_brt_values', 'sample_brt_theta_deriv']):
+                    if not (self.save_samples==False and (str(key) in sample_dataset_names)):
                         group.create_dataset(key, data=data)
 
             # Save overall state trajectory sequence in its own dataset
@@ -98,15 +100,16 @@ class ExperimentResult:
             traj = f['state_trajectory'][:]
         return traj
 
-    def get_timestep_data(self, timestep_index:int) -> dict:
+    def get_timestep_data(self, step_index:int) -> dict:
         step_data = {}
         with h5py.File(self.details_fname, 'r') as f:
-            group = f[f'step_{timestep_index}']
+            group = f[f'step_{step_index}']
             for key in group.keys():
                 step_data[key] = group[key][()]
         return step_data
 
     def get_num_timesteps(self) -> int:
+        # Alternatively, could return len of overall_trajectory - 1
         with h5py.File(self.details_fname, 'r') as f:
-            timesteps = [k for k in f.keys() if k.startsith('step_')]
+            timesteps = [k for k in f.keys() if k.startswith('step_')]
         return len(timesteps)

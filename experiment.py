@@ -134,6 +134,8 @@ class Experiment:
                 #if i % 10 == 0:
                 print(f"controller iteration {i}, time elapsed: {timer_elapsed:.6f}")
 
+            # print(controller.sampled_states)
+
             result.capture_timestep(
                 index = i,
                 time = i * system.timestep,
@@ -146,6 +148,7 @@ class Experiment:
                 sample_states = controller.sampled_states,
                 sample_safety_filter_activated = controller.sample_safety_filter,
                 sample_costs = controller.cost_total,
+                sample_weights = controller.omega,
                 sample_brt_values = controller.sample_brt_values,
                 sample_brt_theta_deriv = controller.sample_brt_theta_deriv,
                 nominal_traj_controls_after = controller.U,
