@@ -12,7 +12,14 @@ pip install -r requirements.txt
 
 ## Running experiments
 
-Use and modify `run_many_experiments.py` to run multiple experiments across different controller configurations.
+From this repository's main directory:
+
+```
+cd MPPI-with-reachability
+python run_many_experiments.py
+```
+
+To test different controller configurations, you can modify the options in `run_many_experiments.py`.
 
 All experiments are specified with a `config.yaml` file that lists all the relevant (hyper)parameters for that experiment. Once each experiment is run, it produces a `result_summary.yaml` file which summarizes the result, and stores more detailed data in `result_details.hdf5` (both of which will be placed in the experiment's directory).
 
