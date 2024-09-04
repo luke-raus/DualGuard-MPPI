@@ -35,21 +35,11 @@ class ClutteredMap:
 
         with h5py.File('brt_dubins_cluttered_0.hdf5', 'r') as hdf_file:
             # Load the arrays from the file
-            self.obs_value       = hdf_file['obstacle_grid'][:]
+            self.obs_value       = hdf_file['obstacle_value_grid'][:]
             self.brt_value       = hdf_file['brt_value_grid'][:]
             self.brt_theta_deriv = hdf_file['brt_theta_deriv_grid'][:]
 
-            brt_grid_axis_0 = hdf_file['brt_axis_0'][:]
-            brt_grid_axis_1 = hdf_file['brt_axis_1'][:]
-            brt_grid_axis_2 = hdf_file['brt_axis_2'][:]
-            self.brt_grid_axes = (brt_grid_axis_0, brt_grid_axis_1, brt_grid_axis_2)
-
-        # --- Load .mat file ---
-        # brt_mat = loadmat(brt_file, simplify_cells=True)
-        # self.obs_value       = brt_mat['init_value']
-        # self.brt_value       = brt_mat['value']
-        # self.brt_theta_deriv = brt_mat['theta_deriv']
-        # self.brt_grid_axes = tuple( brt_mat['grid_axes'] )     # with scipy
+            self.brt_grid_axes = tuple([ hdf_file['brt_axes'][f'axis_{i}'][:] for i in range(self.brt_value.ndim) ])
 
         self.brt_obs_interp         = SciPyRGI(self.brt_grid_axes, self.obs_value, bounds_error=False)
         self.brt_value_interp       = SciPyRGI(self.brt_grid_axes, self.brt_value, bounds_error=False)
