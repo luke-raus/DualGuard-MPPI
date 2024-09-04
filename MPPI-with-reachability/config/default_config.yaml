@@ -4,7 +4,7 @@ apply_safety_filter_to_nominal_trajectory: false
 cost_from_obstacles_or_BRT: obs     # one of: obs, brt
 
 # output params
-save_samples: false
+save_samples: true
 
 # trial params
 trial_max_duration: 0.2             # (s)   ...prev: 15
@@ -22,7 +22,7 @@ mppi_angvel_control_noise_stddev:  8.0   # stddev of control noise (rad/s)
 mppi_initial_control_is_mean:      False # if True, initial control is noise_mean; else random
 
 # brt & safety filter params
-brt_filename: brt_dubins_cluttered_1.hdf5
+brt_filename: config/brt_dubins_cluttered_0.hdf5
 safety_filter_type: least_restrictive
 safety_filter_value_threshold: 0.01
 

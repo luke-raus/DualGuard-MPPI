@@ -36,7 +36,7 @@ class Experiment:
             self.config.action_cost_weights,
             init_state = self.config.init_state,
             goal_state = self.config.goal_state,
-            brt_file   = self.config.brt_filename,
+            brt_fname  = self.config.brt_filename,
             brt_value_threshold = self.config.safety_filter_value_threshold,
             cost_type = self.config.cost_from_obstacles_or_BRT,
         )
