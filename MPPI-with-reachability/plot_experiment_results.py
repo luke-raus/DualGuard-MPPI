@@ -1,12 +1,13 @@
-import dash
-from dash import dcc, html
+from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 import os
+
+import plot_traj
 from experiment_result import ExperimentResult
 
 
 # Initialize Dash app
-app = dash.Dash(title='MPPI+reachability results')
+app = Dash(title='MPPI+reachability results')
 
 # Function to get the list of available experiments from a directory
 def get_experiment_list(directory):
@@ -54,6 +55,7 @@ def update_timestep_slider(selected_experiment):
         return 0, {}
 
     num_timesteps = ExperimentResult(selected_experiment).get_num_timesteps()
+
     marks = {i: str(i) for i in range(num_timesteps)}
     return num_timesteps - 1, marks
 
@@ -64,14 +66,15 @@ def update_timestep_slider(selected_experiment):
     Input('experiment-dropdown', 'value'),
     Input('timestep-slider', 'value')
 )
-def display_experiment(selected_experiment, selected_timestep):
+def display_timestep(selected_experiment, selected_timestep):
     if selected_experiment is None:
-        return "No experiment selected."
+        return 'No experiment selected.'
 
-    step_data = ExperimentResult(selected_experiment).load_timestep(selected_timestep)
+    result = ExperimentResult(selected_experiment)
+    fig = plot_traj.plot_experiment_at_timestep(result, selected_timestep)
+    return dcc.Graph(figure=fig, style={'width': '98vw', 'height': '80vh'})
 
-    # Display result (customize based on what you're visualizing)
-    return f"Displaying raw data for timestep {selected_timestep}: {step_data}"
+    # return f'Displaying raw data for timestep {selected_timestep}: {step_data}'
 
 
 # Run the app
