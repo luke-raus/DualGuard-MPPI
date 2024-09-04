@@ -2,15 +2,12 @@
 
 ## Setup
 
-External dependencies:
+We recommend first creating a python virtual environment.
+
+Then, intall external dependencies via:
 
 ```
-omegaconf
-h5py
-numpy
-pandas
-plotly
-dash
+pip install -r requirements.txt
 ```
 
 ## Running experiments

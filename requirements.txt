@@ -1,0 +1,7 @@
+omegaconf
+h5py
+numpy
+scipy
+plotly
+dash
+pandas
