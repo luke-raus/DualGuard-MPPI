@@ -7,10 +7,10 @@ from experiment import Experiment
 
 
 experiments_path = Path('experiments')
-default_config_fname = Path('config').joinpath('default_config.yaml')
-control_profiles_fname = Path('config').joinpath('control_profiles.yaml')
+default_config_fname   = Path('config') / 'default_config.yaml'
+control_profiles_fname = Path('config') / 'control_profiles.yaml'
 
-num_samples_opts = [20]   # [20, 36, 60, 100, 250, 500, 1000, 2000]
+num_samples_opts = [20, 36, 60, 100, 250, 500, 1000, 2000]
 
 save_samples = False
 
@@ -35,8 +35,7 @@ for num_samples in num_samples_opts:
 
             # Override defaults with this experiment's settings
             config.update(settings)
-            config['control_profile'] = profile_name
-
+            config.control_profile = profile_name
             config.mppi_samples = num_samples
             config.init_state   = init_goal_state_pair['init']
             config.goal_state   = init_goal_state_pair['goal']

@@ -83,7 +83,7 @@ class Experiment:
         controller = self.controller
 
         max_timesteps = int(config.trial_max_duration / config.timestep)
-        safety_filter = config.apply_safety_filter_to_samples,
+        safety_filter = config.apply_safety_filter_to_final_chosen_control,
 
         goal_state = map.goal_state
         goal_state_threshold = 0.1

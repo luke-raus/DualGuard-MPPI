@@ -6,7 +6,7 @@ from experiment_result import ExperimentResult
 
 
 experiments_path = Path('experiments')
-control_profiles_fname = Path('config').joinpath('control_profiles.yaml')
+control_profiles_fname = Path('config') / 'control_profiles.yaml'
 
 
 
