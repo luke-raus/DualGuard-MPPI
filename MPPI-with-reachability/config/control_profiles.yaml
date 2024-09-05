@@ -1,0 +1,24 @@
+Vanilla MPPI with obstacle costs:
+  final_safety_filter:             false
+  apply_safety_filter_to_samples:  false
+  cost_from_obstacles_or_BRT:      obs
+
+Vanilla MPPI with BRT costs:
+  final_safety_filter:             false
+  apply_safety_filter_to_samples:  false
+  cost_from_obstacles_or_BRT:      brt
+
+Filtered MPPI with obstacle costs:
+  final_safety_filter:             true
+  apply_safety_filter_to_samples:  false
+  cost_from_obstacles_or_BRT:      obs
+
+Filtered MPPI with BRT costs:
+  final_safety_filter:             true
+  apply_safety_filter_to_samples:  false
+  cost_from_obstacles_or_BRT:      brt
+
+Sample-safe MPPI (our method):
+  final_safety_filter:             true   # Hopefully, shouldn't matter
+  apply_safety_filter_to_samples:  true
+  cost_from_obstacles_or_BRT:      obs    # should be irrelevant, as samples will never enter BRT

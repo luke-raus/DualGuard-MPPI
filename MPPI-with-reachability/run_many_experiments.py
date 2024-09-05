@@ -1,57 +1,54 @@
 from omegaconf import OmegaConf
 from pathlib import Path
-import itertools
 import json
 
 from experiment import Experiment
 
 
+
+experiments_path = Path('experiments')
+default_config_fname = Path('config').joinpath('default_config.yaml')
+control_profiles_fname = Path('config').joinpath('control_profiles.yaml')
+
+num_samples_opts = [20]   # [20, 36, 60, 100, 250, 500, 1000, 2000]
+
 save_samples = False
 
-num_samples_opts    = [20, 36, 60, 100, 250, 500, 1000, 2000]
-filter_samples_opts = [True, False]
-cost_type_opts      = ['obs', 'brt']
 
 with open('config/dubin_environment_state_pairs.json', 'r') as f:
     states = json.load(f)
     init_goal_state_pairs = [ {'init':states['init'][i], 'goal':states['goal'][i]}
                               for i in range(len(states['init'])) ]
-    init_goal_state_pairs = init_goal_state_pairs[:5]
+    init_goal_state_pairs = init_goal_state_pairs[:2]
 
-default_config_fname = 'config/default_config.yaml'
-experiments_path = Path('experiments')
+control_profiles = OmegaConf.load(control_profiles_fname)
 
 
-# === Setup experiment configurations ===
+# === Set up experiment configurations ===
 
-# Iterate thru every combination of parameter options
-param_combos = itertools.product(num_samples_opts, filter_samples_opts, cost_type_opts, init_goal_state_pairs)
+for num_samples in num_samples_opts:
+    for state_ind, init_goal_state_pair in enumerate(init_goal_state_pairs):
+        for control_ind, (profile_name, settings) in enumerate(control_profiles.items()):
 
-experiment_id = 0
-for param_combo in param_combos:
+            # Load default config
+            config = OmegaConf.load(default_config_fname)
 
-    num_samples, filter_samples, cost_type, init_goal_state_pair = param_combo
+            # Override defaults with this experiment's settings
+            config.update(settings)
+            config['control_profile'] = profile_name
 
-    # Load default config
-    config = OmegaConf.load(default_config_fname)
+            config.mppi_samples = num_samples
+            config.init_state   = init_goal_state_pair['init']
+            config.goal_state   = init_goal_state_pair['goal']
+            config.save_samples = save_samples
 
-    # Override defaults with this experiment's settings
-    config.apply_safety_filter_to_samples = filter_samples
-    config.cost_from_obstacles_or_BRT = cost_type
-    config.mppi_samples = num_samples
+            # Set & create experiment directory, then save config file
+            exp_fname = f"exp_samples-{num_samples:04}_trial-{state_ind:03}_control-{control_ind}"
 
-    config.init_state = init_goal_state_pair['init']
-    config.goal_state = init_goal_state_pair['goal']
-
-    config.save_samples = save_samples
-
-    # Set & create experiment directory, then save config file
-    experiment_dir = experiments_path / f'experiment_{experiment_id:05}'
-    experiment_dir.mkdir(parents=True, exist_ok=False)
-    # May want to let user know that we're avoiding overriding existing experiment dirs
-    OmegaConf.save(config, f=experiment_dir/'config.yaml')
-
-    experiment_id += 1
+            experiment_dir = experiments_path / exp_fname
+            experiment_dir.mkdir(parents=True, exist_ok=False)
+            # May want to let user know that we're avoiding overriding existing experiment dirs
+            OmegaConf.save(config, f=experiment_dir/'config.yaml')
 
 
 # === Run experiments ===
@@ -64,6 +61,3 @@ for experiment_dir in sorted(experiments_path.iterdir()):
     experiment.run_and_save()
 
 print('All done!')
-
-# config_name = f'trial-{trial_num}_samples-{}filter-{filter_samples}_cost-{cost_type}'
-

@@ -6,7 +6,10 @@ import h5py
 
 class ExperimentResult:
     def __init__(self, experiment_dir, save_samples:bool=True):
-        # self.experiment_dir = experiment_dir
+        self.experiment_dir = experiment_dir
+
+        self.config_fname = Path(experiment_dir) / 'config.yaml'
+
         self.summary_fname = Path(experiment_dir) / 'result_summary.yaml'
         self.details_fname = Path(experiment_dir) / 'result_details.hdf5'
 
@@ -14,6 +17,7 @@ class ExperimentResult:
 
         self.timesteps = []
         self.summary = None
+        self.config = None
 
     def capture_timestep(
         self,
@@ -88,12 +92,18 @@ class ExperimentResult:
             state_trajectory.append(self.summary.terminal_state)
             hdf_file.create_dataset('state_trajectory', data=state_trajectory)
 
-    def load_summary(self) -> None:
-        self.result_summary = OmegaConf.load(self.summary_fname)
-
     def get_summary(self) -> dict:
-        self.load_summary()
-        return self.result_summary
+        self.summary = OmegaConf.load(self.summary_fname)
+        return self.summary
+
+    def get_config(self) -> dict:
+        self.config = OmegaConf.load(self.config_fname)
+        return self.config
+
+    def get_all_experiment_info(self) -> dict:
+        self.get_summary()
+        self.get_config()
+        return {'path':str(self.experiment_dir), **self.config, **self.summary}
 
     def get_overall_trajectory(self) -> np.ndarray:
         with h5py.File(self.details_fname, 'r') as f:

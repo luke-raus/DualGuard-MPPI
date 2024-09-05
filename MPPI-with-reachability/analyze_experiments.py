@@ -2,43 +2,46 @@ from omegaconf import OmegaConf
 from pathlib import Path
 import pandas as pd
 
-def get_expr_info(experiment_dir:Path) -> dict:
-    config = OmegaConf.load(experiment_dir / 'config.yaml')
-    result = OmegaConf.load(experiment_dir / 'result_summary.yaml')
-    # Merge dictionaries
-    return {'path':str(experiment_dir), **config, **result}
+from experiment_result import ExperimentResult
 
 
-if __name__ == "__main__":
+experiments_path = Path('experiments')
+control_profiles_fname = Path('config').joinpath('control_profiles.yaml')
 
-    experiments_path = Path('experiments')
-    experiment_info = [get_expr_info(x) for x in sorted(experiments_path.iterdir())]
-    exp_df = pd.DataFrame(experiment_info)
-    print(exp_df)
-    print()
 
-    configs = [
-        ('MPPI with obs costs',        False,  'obs'),
-        ('MPPI with BRT costs',        False,  'brt'),
-        ('Our method with obs costs',  True,   'obs'),
-        ('Our method with BRT costs',  True,   'brt')
-    ]
 
-    for config in configs:
-        name, filter_samples, cost_type = config
+control_profiles = OmegaConf.load(control_profiles_fname)
 
-        sub_df = exp_df.loc[ (exp_df['apply_safety_filter_to_samples'] == filter_samples) &
-                             (exp_df['cost_from_obstacles_or_BRT'] == cost_type) ]
+experiments_info = [ExperimentResult(x).get_all_experiment_info() for x in sorted(experiments_path.iterdir())]
+exp_df = pd.DataFrame(experiments_info)
+print(exp_df.keys())
 
-        num_trials = len(sub_df)
+num_samples_settings = exp_df['mppi_samples'].unique().tolist()
 
-        avg_cost = sub_df['total_cost'].mean()
-        std_cost = sub_df['total_cost'].std()
+config_results = []
+for num_samples in num_samples_settings:
+    for profile_name, settings in control_profiles.items():
 
-        num_trials_crashed      = sub_df['crashed'].sum()
-        num_trials_reached_goal = sub_df['goal_reached'].sum()
+        config_trials = exp_df.loc[ (exp_df['control_profile'] == profile_name) ]
+        # Alternatively, filter for all relevant settings using filter_df_by_dict()
 
-        percent_trials_crashed      = 100 * num_trials_crashed      / num_trials
-        percent_trials_reached_goal = 100 * num_trials_reached_goal / num_trials
+        num_trials = len(config_trials)
 
-        print(f'Config: {name}   -   {num_trials} trials   -    % crashed: {percent_trials_crashed}   -   % reached goal: {percent_trials_reached_goal}    -   avg cost: {avg_cost:.1f} +/- {std_cost:.1f}')
+        results = {
+            'profile name': profile_name,
+            'num trials':  num_trials,
+            'cost (avg ± std)': f"{config_trials['total_cost'].mean():.1f} ± {config_trials['total_cost'].std():.1f}",
+            'crashed (%)':      100 * config_trials['crashed'].sum() / num_trials,
+            'reached goal (%)': 100 * config_trials['goal_reached'].sum() / num_trials,
+        }
+        config_results.append(results)
+
+    summary = pd.DataFrame(config_results)
+
+    print(f'\nSamples: {num_samples}')
+    print(summary)
+
+
+def filter_df_by_dict(df: pd.DataFrame, filter_dict: dict) -> pd.DataFrame:
+    # See: https://stackoverflow.com/a/34162576
+    return df.loc[(df[list(filter_dict)] == pd.Series(filter_dict)).all(axis=1)]
