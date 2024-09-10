@@ -123,3 +123,8 @@ class ExperimentResult:
         with h5py.File(self.details_fname, 'r') as f:
             timesteps = [k for k in f.keys() if k.startswith('step_')]
         return len(timesteps)
+
+    def get_environment_path(self) -> Path:
+        self.get_config()
+        return self.config.brt_filename
+    

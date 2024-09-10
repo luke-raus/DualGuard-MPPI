@@ -1,5 +1,6 @@
 import plotly.graph_objects as go
 import numpy as np
+import h5py
 from pathlib import Path
 
 from experiment_result import ExperimentResult
@@ -16,13 +17,18 @@ def update_plot_layout_with_map(layout:dict, environment:Path = None) -> dict:
     obs_rects = [{'x0': x0, 'y0': y0, 'x1': x1, 'y1': y1, 'type': 'rect', 'xref': 'x', 'yref': 'y',
                 'fillcolor': 'black', 'opacity': 0.5, 'line': {'width': 0}} for x0, y0, x1, y1 in walls]
 
-    """
-    # kwargs = {'type':'circle', 'xref':'x', 'yref':'y', 'fillcolor':'gray', 'layer':'below', 'opacity':1.0}
-    # points = [go.layout.Shape(x0=x-r, y0=y-r, x1=x+r, y1=y+r, **kwargs) for x, y, r in obs_xyr]
-    obs_circs = [{'x0': float(x-r), 'y0': float(y-r), 'x1': float(x+r), 'y1': float(y+r), 'type': 'circle', 'xref': 'x', 'yref': 'y',
-                'fillcolor': 'black', 'opacity': 0.5, 'line': {'width': 0}} for x, y, r in obs_xyr]
-    """
-    layout["shapes"] = tuple(obs_rects) # + obs_circs)
+
+
+    with h5py.File(environment, 'r') as f:
+        x = f['obstacles']['obstacle_x'][:]
+        y = f['obstacles']['obstacle_y'][:]
+        r = f['obstacles']['obstacle_radius'][:]
+    obs_circs = [{'x0': float(x[i]-r[i]), 'y0': float(y[i]-r[i]), 'x1': float(x[i]+r[i]), 'y1': float(y[i]+r[i]),
+                    'type': 'circle', 'xref': 'x', 'yref': 'y', 'fillcolor': 'black', 'opacity': 0.5, 'line': {'width': 0}} for i in range(len(x))]
+    # circle_settings = {'type':'circle', 'xref':'x', 'yref':'y', 'fillcolor':'gray', 'layer':'below', 'opacity':1.0}
+    # points = [ go.layout.Shape(x0=x[i]-r[i], y0=y[i]-r[i], x1=x[i]+r[i], y1=y[i]+r[i], **circle_settings) for  ]
+
+    layout["shapes"] = tuple(obs_rects) + tuple(obs_circs)
     return layout
 
 
@@ -136,7 +142,7 @@ def plot_experiment_at_timestep(result:ExperimentResult, step_index:int) -> go.F
     traces.append(get_trace_of_nominal_traj_before(step_data))
     traces.append(get_trace_of_nominal_traj_after(step_data))
 
-    layout = update_plot_layout_with_map( {} )
+    layout = update_plot_layout_with_map( {}, result.get_environment_path() )
 
     layout["xaxis"] = {'showgrid': False, 'zeroline': False}
     layout["yaxis"] = {'showgrid': False, 'zeroline': False}
