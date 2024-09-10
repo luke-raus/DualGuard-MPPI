@@ -1,17 +1,21 @@
 import plotly.graph_objects as go
 import numpy as np
+from pathlib import Path
 
 from experiment_result import ExperimentResult
 
 
-def update_plot_layout_with_map(layout:dict) -> dict:
+def update_plot_layout_with_map(layout:dict, environment:Path = None) -> dict:
     w   = 5.    # wall distances from center
     w_t = 1.    # wall display thickness
-    walls = [[-(w+w_t), w, -w, -w], [-(w+w_t), (w+w_t), (w+w_t), w],
-             [-(w+w_t), -w, (w+w_t), -(w+w_t)], [w, w, (w+w_t), -w]]
+    walls = [[-(w+w_t),       w,      -w,       -w],
+             [-(w+w_t), (w+w_t), (w+w_t),        w],
+             [-(w+w_t),      -w, (w+w_t), -(w+w_t)],
+             [       w,       w, (w+w_t),       -w]]
 
     obs_rects = [{'x0': x0, 'y0': y0, 'x1': x1, 'y1': y1, 'type': 'rect', 'xref': 'x', 'yref': 'y',
                 'fillcolor': 'black', 'opacity': 0.5, 'line': {'width': 0}} for x0, y0, x1, y1 in walls]
+
     """
     # kwargs = {'type':'circle', 'xref':'x', 'yref':'y', 'fillcolor':'gray', 'layer':'below', 'opacity':1.0}
     # points = [go.layout.Shape(x0=x-r, y0=y-r, x1=x+r, y1=y+r, **kwargs) for x, y, r in obs_xyr]
@@ -95,31 +99,27 @@ def get_traces_of_samples(step_data:dict, max_samples=100) -> list:
 
 
 def get_trace_of_nominal_traj_before(step_data:dict) -> dict:
-        # Plot nominal trajectory at timestep
-        trace = {
+        return {
             "x": step_data["nominal_traj_states_before"][:, 0],
             "y": step_data["nominal_traj_states_before"][:, 1],
             "mode": "lines",
-            "showlegend": False,
-            "line": dict(color='rgb(0,255,0)', width=5),
+            "showlegend": True,
+            "line": dict(color='rgba(0,255,0,0.2)', width=4),
             "name": "Nominal trajectory before"
         }
-        return trace
 
 
 def get_trace_of_nominal_traj_after(step_data:dict) -> dict:
-        # Plot nominal trajectory at timestep
-        trace = {
+        return {
             "x": step_data["nominal_traj_states_after"][:, 0],
             "y": step_data["nominal_traj_states_after"][:, 1],
             "mode": "lines",
-            "showlegend": False,
-            "line": dict(color='rgb(0,255,0)', width=5),
+            "showlegend": True,
+            "line": dict(color='rgba(0,255,0,1.0)', width=4),
             "name": "Nominal trajectory after"
         }
-        return trace
 
-
+# def plot_experiment_at_timestep(result:ExperimentResult, environment_file:str, step_index:int) -> go.Figure:
 def plot_experiment_at_timestep(result:ExperimentResult, step_index:int) -> go.Figure:
 
     max_samples = 200
@@ -127,9 +127,11 @@ def plot_experiment_at_timestep(result:ExperimentResult, step_index:int) -> go.F
     traces = []
     traces.append(get_trace_of_overall_trajectory_to_index(result, index=step_index))
 
-    # TODO: If saved_samples...
     step_data = result.get_timestep_data(step_index)
-    traces.extend(get_traces_of_samples(step_data, max_samples=max_samples))
+
+    has_samples = result.get_config()['save_samples']
+    if has_samples:
+        traces.extend(get_traces_of_samples(step_data, max_samples=max_samples))
 
     traces.append(get_trace_of_nominal_traj_before(step_data))
     traces.append(get_trace_of_nominal_traj_after(step_data))

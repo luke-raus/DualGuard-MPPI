@@ -25,7 +25,7 @@ All experiments are specified with a `config.yaml` file that lists all the relev
 
 ## Visualizing results
 
-The results can be visualized via `datavis.py` and using the Dash GUI to select and experiment & control timestep.
+The results can be visualized via `plot_experiment_results.py` and using the Dash GUI to select and experiment & control timestep.
 
 ## Analyzing collective results
 

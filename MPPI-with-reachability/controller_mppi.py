@@ -1,5 +1,6 @@
 import numpy as np
-import time
+from typing import Callable
+# import time
 
 
 class MPPI():
@@ -12,24 +13,30 @@ class MPPI():
     based off of https://github.com/ferreirafabio/mppi_pendulum
     """
 
-    def __init__(self, dynamics, running_cost, nx, noise_sigma, num_samples=100, horizon=15,
-                terminal_state_cost=None,
-                lambda_=1.,
-                noise_mu=None,
-                u_min=None,
-                u_max=None,
-                u_init=None,
-                U_init_is_mean=None,
-                u_per_command=1,
-                sample_null_action=False,
-                noise_abs_cost=True,
-                filter_samples=False,
-                filter_nom_traj=False,
-                brt_safety_query=None,
-                brt_opt_ctrl_query=None,
-                brt_value_query=None,
-                brt_theta_deriv_query=None,
-                diagnostics=False):
+    def __init__(self,
+        dynamics:     Callable,
+        running_cost: Callable,
+        nx:           int,
+        noise_sigma:  np.ndarray,
+        num_samples:  int = 100,
+        horizon:      int = 15,
+        terminal_state_cost: Callable = None,
+        lambda_:      float = 1.,
+        noise_mu:     np.ndarray = None,
+        u_min:        np.ndarray = None,
+        u_max:        np.ndarray = None,
+        u_init:       np.ndarray = None,
+        U_init_is_mean:     bool = None,
+        u_per_command:       int = 1,
+        sample_null_action: bool = False,
+        noise_abs_cost:     bool = True,
+        filter_samples:     bool = False,
+        filter_nom_traj:    bool = False,
+        brt_safety_query:      Callable = None,
+        brt_opt_ctrl_query:    Callable = None,
+        brt_value_query:       Callable = None,
+        brt_theta_deriv_query: Callable = None,
+        diagnostics:               bool = False):
         """
         :param dynamics: function(state, action) -> next_state (K x nx) taking in batch state (K x nx) and action (K x nu)
         :param running_cost: function(state, action) -> cost (K) taking in batch state and action (same as dynamics)
@@ -43,7 +50,7 @@ class MPPI():
         :param u_min: (nu) minimum values for each dimension of control to pass into dynamics
         :param u_max: (nu) maximum values for each dimension of control to pass into dynamics
         :param u_init: (nu) what to initialize new end of trajectory control to be; defaults to zero
-        :param U_init_is_mean: is U_init equal to the mean control (e.g. zero)? Noise otherwise
+        :param U_init_is_mean: [bool] is U_init equal to the mean control (e.g. zero)? Noise otherwise
         #:param U_init: (T x nu) initial control sequence; defaults to noise
         :param sample_null_action: Whether to explicitly sample a null action (bad for starting in a local minima)
         :param noise_abs_cost: Whether to use the absolute value of the action noise to avoid bias when all states have the same cost

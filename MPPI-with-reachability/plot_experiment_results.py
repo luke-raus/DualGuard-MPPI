@@ -1,18 +1,27 @@
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
+import plotly.graph_objs as go
 import os
+from omegaconf import OmegaConf
 
 import plot_traj
 from experiment_result import ExperimentResult
 
 
-# Initialize Dash app
-app = Dash(title='MPPI+reachability results')
-
 # Function to get the list of available experiments from a directory
 def get_experiment_list(directory):
     # Might want to filter for experiments that are finished
     return sorted([f for f in os.listdir(directory)])   # if f.isidr()
+
+# Function to get the result data in a readable format
+def format_dict_for_display(result: ExperimentResult):
+    return f"RESULT:\n\n{OmegaConf.to_yaml(result.get_summary())}\n\n" + \
+           f"CONFIG:\n\n{OmegaConf.to_yaml(result.get_config())}"
+
+
+
+# Initialize Dash app
+app = Dash(title='MPPI+reachability results')
 
 # Layout
 # These defaults are updated by callbacks
@@ -20,16 +29,27 @@ app.layout = html.Div([
     html.H2("Experiment Results Viewer"),
 
     # Dropdown to select experiment
-    html.Label('Select Experiment:'),
+    html.Label('Select experiment:'),
     dcc.Dropdown(id='experiment-dropdown', options=[]),
 
     # Slider to select timestep
-    html.Label('Select Timestep:'),
+    html.Label('Select timestep:'),
     dcc.Slider(id='timestep-slider', min=0, max=0, step=1, value=0, marks={}),
 
-    # Placeholder for displaying experiment results
-    html.Div(id='experiment-display')
-])
+    # Plot
+    html.Div([
+        dcc.Graph(id='experiment-plot', style={'height': '80vh'}),
+    ], style={'display': 'inline-block', 'width': '70%'}),
+
+    # Results & config display
+    html.Div([
+        html.H4("Experiment Details"),
+        html.Pre(id='details-display', style={'font-family': 'monospace'})
+    ], style={'display': 'inline-block', 'width': '25%', 'vertical-align': 'top', 'padding-left': '20px'})
+
+], style={'font-family': 'sans-serif'})
+
+
 
 
 # Callback to update dropdown options based on available experiments
@@ -62,17 +82,22 @@ def update_timestep_slider(selected_experiment):
 
 # Callback to display the experiment result for the selected timestep
 @app.callback(
-    Output('experiment-display', 'children'),
+    Output('experiment-plot', 'figure'),
+    Output('details-display', 'children'),
     Input('experiment-dropdown', 'value'),
     Input('timestep-slider', 'value')
 )
 def display_timestep(selected_experiment, selected_timestep):
     if selected_experiment is None:
-        return 'No experiment selected.'
+        return go.Figure(), 'No experiment selected.'
 
     result = ExperimentResult(selected_experiment)
     fig = plot_traj.plot_experiment_at_timestep(result, selected_timestep)
-    return dcc.Graph(figure=fig, style={'width': '98vw', 'height': '80vh'})
+
+    details_str = format_dict_for_display(result)
+
+    return fig, details_str
+    #return dcc.Graph(figure=fig, style={'width': '98vw', 'height': '80vh'})
 
     # return f'Displaying raw data for timestep {selected_timestep}: {step_data}'
 

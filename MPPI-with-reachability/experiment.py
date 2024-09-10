@@ -85,12 +85,7 @@ class Experiment:
         max_timesteps = int(config.trial_max_duration / config.timestep)
         safety_filter = config.apply_safety_filter_to_final_chosen_control,
 
-        goal_state = map.goal_state
-        goal_state_threshold = 0.1
-
-        goal_reached = False
-        crashed = False
-
+        goal_reached, crashed = False, False
         running_cost = 0
 
         result = ExperimentResult(self.experiment_dir, save_samples=config.save_samples)
@@ -107,11 +102,16 @@ class Experiment:
 
             # Run MPPI controller anyways, but don't necessarily pass action to state
             timer_start = time.perf_counter()
+
+            """
+            selected_control, step_cost = contoller.get_control(state)
+            """
+
             mppi_action = controller.command(system.state)
 
-            potential_next_state = system.next_states(
-                system.state, mppi_action)
+            potential_next_state = system.next_states(system.state, mppi_action)
             next_state_unsafe = bool(map.check_brt_collision( np.expand_dims(potential_next_state, axis=0) ))
+
             # If relevant, override MPPI-chosen control action with safety control
             safety_filter_activated = ( (measured_state_is_unsafe or next_state_unsafe) and safety_filter)
             if safety_filter_activated:
@@ -158,19 +158,14 @@ class Experiment:
                 control_overridden_by_safety_filter = safety_filter_activated
             )
 
-            state = system.state
-
-            # if close_to_goal():
-            # Check if we've reached goal state within threshold; if so, end trial
-            dist_to_goal_state_sq = float(
-                (state[0]-goal_state[0])**2 + (state[1]-goal_state[1])**2)
-            if (dist_to_goal_state_sq < goal_state_threshold**2):
+            # If we're close enough to goal, end trial successfully
+            if self.environment.get_dist_to_goal(system.state) < config.goal_state_threshold:
                 goal_reached = True
                 print('goal reached')
                 break
 
             # Check if we've collided with an obstacle; if so, end trial
-            if map.check_obs_collision(np.expand_dims(state, axis=0)):
+            if map.check_obs_collision(np.expand_dims(system.state, axis=0)):
                 crashed = True
                 print('crashed')
                 break

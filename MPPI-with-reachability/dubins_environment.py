@@ -137,3 +137,6 @@ class ClutteredMap:
         """
         controls = np.expand_dims(self.brt_opt_ctrl( states ), axis=1)         # (K,nu=1)
         return controls
+
+    def get_dist_to_goal(self, state):
+        return ( (state[0]-self.goal_state[0])**2 + (state[1]-self.goal_state[1])**2 )**0.5
