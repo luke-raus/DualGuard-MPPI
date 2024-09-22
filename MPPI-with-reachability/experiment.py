@@ -129,7 +129,7 @@ class Experiment:
             # Pass action to system
             system.update_true_state(action)
 
-            print_progress = True
+            print_progress = False
             if print_progress:
                 #if i % 10 == 0:
                 print(f"controller iteration {i}, time elapsed: {timer_elapsed:.6f}")

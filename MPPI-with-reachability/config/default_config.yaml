@@ -11,6 +11,7 @@ save_samples: false
 # trial params
 init_state: [3.375, 3.482, 2.604]   # [x, y, theta] (m, m, rad)
 goal_state: [1.0, 1.0, 0.0]         # [x, y, theta] (m, m, rad)
+goal_state_threshold: 0.1           # (m) Refers to distance in XY plane (ignoring theta)
 
 timestep: 0.02           # dynamics update time interval (s)
 trial_max_duration: 15   # after this much time, trial terminates (s)
