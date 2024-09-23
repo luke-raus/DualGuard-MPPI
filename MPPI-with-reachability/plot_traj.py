@@ -3,8 +3,10 @@ import numpy as np
 import h5py
 from pathlib import Path
 
-from experiment_result import ExperimentResult
+from experiment_storage import ExperimentStorage
 
+
+#class ExperimentVisualization:
 
 def update_plot_layout_with_map(layout:dict, environment:Path = None) -> dict:
     w   = 5.    # wall distances from center
@@ -32,7 +34,7 @@ def update_plot_layout_with_map(layout:dict, environment:Path = None) -> dict:
     return layout
 
 
-def get_trace_of_overall_trajectory_to_index(result:ExperimentResult, index:int = -1) -> dict:
+def get_trace_of_overall_trajectory_to_index(result:ExperimentStorage, index:int = -1) -> dict:
 
     trajectory = result.get_overall_trajectory()
     if index == -1:
@@ -126,7 +128,7 @@ def get_trace_of_nominal_traj_after(step_data:dict) -> dict:
         }
 
 # def plot_experiment_at_timestep(result:ExperimentResult, environment_file:str, step_index:int) -> go.Figure:
-def plot_experiment_at_timestep(result:ExperimentResult, step_index:int) -> go.Figure:
+def plot_experiment_at_timestep(result:ExperimentStorage, step_index:int) -> go.Figure:
 
     max_samples = 200
 

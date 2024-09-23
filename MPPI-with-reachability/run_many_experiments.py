@@ -2,24 +2,27 @@ from omegaconf import OmegaConf
 from pathlib import Path
 import json
 
-from experiment import Experiment
+from experiment_storage import ExperimentStorage
+from experiment_runner import ExperimentRunner
 
 
+experiments_path = Path('experiments_again')
 
-experiments_path = Path('experiments')
 default_config_fname   = Path('config') / 'default_config.yaml'
 control_profiles_fname = Path('config') / 'control_profiles.yaml'
 
-num_samples_opts = [20, 36, 60, 100, 250, 500, 1000, 2000]
+num_samples_opts = [20]#, 36, 60, 100, 250, 500, 1000, 2000]
 
-save_samples = False
+num_trials_per_config = 10 #0
+
+save_samples = True
 
 
 with open('config/dubin_environment_state_pairs.json', 'r') as f:
     states = json.load(f)
     init_goal_state_pairs = [ {'init':states['init'][i], 'goal':states['goal'][i]}
                               for i in range(len(states['init'])) ]
-    init_goal_state_pairs = init_goal_state_pairs[:2]
+    init_goal_state_pairs = init_goal_state_pairs[:num_trials_per_config]
 
 control_profiles = OmegaConf.load(control_profiles_fname)
 
@@ -55,7 +58,9 @@ for num_samples in num_samples_opts:
 for experiment_dir in sorted(experiments_path.iterdir()):
 
     print(f'Running experiment {experiment_dir}')
-    experiment = Experiment(experiment_dir)
+
+    experiment_storage = ExperimentStorage(experiment_dir)
+    experiment = ExperimentRunner(experiment_storage)
     experiment.initialize()
     experiment.run_and_save()
 

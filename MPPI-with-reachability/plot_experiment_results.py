@@ -5,7 +5,7 @@ import os
 from omegaconf import OmegaConf
 
 import plot_traj
-from experiment_result import ExperimentResult
+from experiment_storage import ExperimentStorage
 
 
 # Function to get the list of available experiments from a directory
@@ -14,9 +14,9 @@ def get_experiment_list(directory):
     return sorted([f for f in os.listdir(directory)])   # if f.isidr()
 
 # Function to get the result data in a readable format
-def format_dict_for_display(result: ExperimentResult):
-    return f"RESULT:\n\n{OmegaConf.to_yaml(result.get_summary())}\n\n" + \
-           f"CONFIG:\n\n{OmegaConf.to_yaml(result.get_config())}"
+def format_dict_for_display(stored_result: ExperimentStorage):
+    return f"RESULT:\n\n{OmegaConf.to_yaml(stored_result.get_summary())}\n\n" + \
+           f"CONFIG:\n\n{OmegaConf.to_yaml(stored_result.get_config())}"
 
 
 
@@ -74,7 +74,7 @@ def update_timestep_slider(selected_experiment):
     if selected_experiment is None:
         return 0, {}
 
-    num_timesteps = ExperimentResult(selected_experiment).get_num_timesteps()
+    num_timesteps = ExperimentStorage(selected_experiment).get_num_timesteps()
 
     marks = {i: str(i) for i in range(num_timesteps)}
     return num_timesteps - 1, marks
@@ -91,10 +91,10 @@ def display_timestep(selected_experiment, selected_timestep):
     if selected_experiment is None:
         return go.Figure(), 'No experiment selected.'
 
-    result = ExperimentResult(selected_experiment)
-    fig = plot_traj.plot_experiment_at_timestep(result, selected_timestep)
+    stored_result = ExperimentStorage(selected_experiment)
+    fig = plot_traj.plot_experiment_at_timestep(stored_result, selected_timestep)
 
-    details_str = format_dict_for_display(result)
+    details_str = format_dict_for_display(stored_result)
 
     return fig, details_str
     #return dcc.Graph(figure=fig, style={'width': '98vw', 'height': '80vh'})

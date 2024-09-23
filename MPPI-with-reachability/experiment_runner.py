@@ -1,26 +1,19 @@
 from controller_mppi import MPPI
 from dubins_environment import ClutteredMap
 from dubins_dynamics import DubinsCarFixedVel
+
 from experiment_result import ExperimentResult
+from experiment_storage import ExperimentStorage
 
 import time
 import numpy as np
-from pathlib import Path
-
-# Used to load a dot-accessible config dict from .yaml file (& cmd-line args)
-from omegaconf import OmegaConf
 
 
-class Experiment:
+class ExperimentRunner:
 
-    def __init__(self, experiment_dir):
-        self.experiment_dir = Path(experiment_dir)
-        self.config_fname  = self.experiment_dir / 'config.yaml'
-        self.summary_fname = self.experiment_dir / 'result_summary.yaml'
-        self.details_fname = self.experiment_dir / 'result_details.hdf5'
-
-        # Load config
-        self.config = OmegaConf.load(self.config_fname)
+    def __init__(self, storage:ExperimentStorage):
+        self.storage = storage
+        self.config = storage.get_config()
 
     def initialize(self) -> None:
 
@@ -64,31 +57,21 @@ class Experiment:
             diagnostics = False,
         )
 
-    def run_and_save(self) -> None:
-
-        result = self.run_trial()
-        result.save_to_files()
-
-        print(f'Experiment complete')
-
-
-    def run_trial(self) -> ExperimentResult:
-        """
-        safety_filter is boolean of whether to invoke reachability-based safety filter
-        """
+    def run(self) -> ExperimentResult:
 
         config = self.config
         system = self.system
         map = self.environment
         controller = self.controller
 
+        result = ExperimentResult(save_samples=config.save_samples)
+
+
         max_timesteps = int(config.trial_max_duration / config.timestep)
         safety_filter = config.apply_safety_filter_to_final_chosen_control,
 
         goal_reached, crashed = False, False
         running_cost = 0
-
-        result = ExperimentResult(self.experiment_dir, save_samples=config.save_samples)
 
         for i in range(max_timesteps):
 
@@ -181,3 +164,7 @@ class Experiment:
         )
 
         return result
+
+    def run_and_save(self) -> None:
+        result = self.run()
+        self.storage.save_results(result)
