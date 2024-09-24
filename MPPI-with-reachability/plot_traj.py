@@ -27,10 +27,33 @@ def update_plot_layout_with_map(layout:dict, environment:Path = None) -> dict:
         r = f['obstacles']['obstacle_radius'][:]
     obs_circs = [{'x0': float(x[i]-r[i]), 'y0': float(y[i]-r[i]), 'x1': float(x[i]+r[i]), 'y1': float(y[i]+r[i]),
                     'type': 'circle', 'xref': 'x', 'yref': 'y', 'fillcolor': 'black', 'opacity': 0.5, 'line': {'width': 0}} for i in range(len(x))]
+
+
     # circle_settings = {'type':'circle', 'xref':'x', 'yref':'y', 'fillcolor':'gray', 'layer':'below', 'opacity':1.0}
     # points = [ go.layout.Shape(x0=x[i]-r[i], y0=y[i]-r[i], x1=x[i]+r[i], y1=y[i]+r[i], **circle_settings) for  ]
 
-    layout["shapes"] = tuple(obs_rects) + tuple(obs_circs)
+    new_shapes = tuple(obs_rects) + tuple(obs_circs)
+
+    if "shapes" in layout.keys():
+        layout["shapes"] += new_shapes
+    else:
+        layout["shapes"] = new_shapes
+
+    return layout
+
+
+def update_layout_with_goal_state(layout:dict, config) -> dict:
+    x = config.goal_state[0]
+    y = config.goal_state[1]
+    r = config.goal_state_threshold
+    new_shapes = ({'x0': float(x-r), 'y0': float(y-r), 'x1': float(x+r), 'y1': float(y+r),
+                   'type': 'circle', 'xref': 'x', 'yref': 'y', 'fillcolor': 'blue', 'opacity': 0.5, 'line': {'width': 0}},)
+
+    if "shapes" in layout.keys():
+        layout["shapes"] += new_shapes
+    else:
+        layout["shapes"] = new_shapes
+
     return layout
 
 
@@ -41,67 +64,72 @@ def get_trace_of_overall_trajectory_to_index(result:ExperimentStorage, index:int
         index = np.shape(trajectory)[0]
 
     trajectory_trace = {
-        "x": trajectory[:index, 0],
-        "y": trajectory[:index, 1],
+        "x": trajectory[:index+1, 0],
+        "y": trajectory[:index+1, 1],
         "mode": "lines+markers",
-        "showlegend": False,
-        "line": dict(color='black'),
-        "name": "Actual trajectory"
+        "line": {
+            "color": "black"
+        },
+        "marker": {
+            "symbol": "triangle-up-open",
+            "size": 15,
+            "angle": convert_angles_for_plot(trajectory[:index+1, 2])
+        },
+        "name": "System trajectory",
+        "showlegend": True,
     }
     return trajectory_trace
 
 
-def get_traces_of_samples(step_data:dict, max_samples=100) -> list:
-    """
-    frame["data"].extend( THIS )
-    """
-    sample_traces = []
+def convert_angles_for_plot(state_angles):
+     return -(state_angles * 180 / 3.14159264) + 90
+
+
+def get_traces_of_samples(step_data:dict, max_samples=100) -> list[dict]:
 
     sample_states  = step_data['sample_states']   # (K, T, nx)
-    sample_costs   = step_data['sample_costs']     # (K)
-    sample_weights = step_data['sample_weights']   # (K)
-    """
-    # Compute cost min/max at timestep
-    # max_weight = max(sample_weights)
-    # range_weight = max_weight - min(sample_weights)
-    cost_threshold = 1e4
+    sample_costs   = step_data['sample_costs']    # (K)
+    sample_weights = step_data['sample_weights']  # (K)
 
-    if np.any(sample_costs < cost_threshold):
-        max_cost_below_thresh = np.max(sample_costs[sample_costs < cost_threshold])
-    else:
-        max_cost_below_thresh = np.max(sample_costs)
-    min_cost = np.min(sample_costs)
-    # to ensure nonzero...
-    range_cost = max_cost_below_thresh - min_cost + 1e-8
-    # Tensor to list...
-    sample_costs = sample_costs.tolist()
-    """
-    nSamples = min(np.shape(sample_states)[0], max_samples)
+    num_samples = min(np.shape(sample_states)[0], max_samples)
 
-    sample_colors = []
     sample_alpha = 0.4
-    sample_color = f"rgba(255,140,16,{sample_alpha})"
+
+    # We group the samples into those that are basically "discarded" or not.
+    # Those that are discarded, color orange.
+    # Those that are not, a gradient: higher weight = blue, lower weight = red.
+
+    discarded_weight_threshold = 1e-9   # We assume that any sample with less than this much weight is effectively "discarded"
+
+    is_discarded = sample_weights < discarded_weight_threshold
+    print(is_discarded)
+    print(all(is_discarded))
+
+    if not all(is_discarded):
+        max_weight = max(sample_weights)
+        min_weight_above_threshold = min(sample_weights[ ~is_discarded ])
+
+        print(max_weight)
+        print(min_weight_above_threshold)
+
+        sample_weights_scaled = (sample_weights - min_weight_above_threshold) / (max_weight - min_weight_above_threshold + 1e-9)  # avoid divide by zero if min=max
+
+    sample_colors = [ f"rgba(255,140,16,{sample_alpha})" if is_discarded[i]
+                      else f"rgba({255-round(255*sample_weights_scaled[i])},0,{round(255*sample_weights_scaled[i])},{sample_alpha})"
+                      for i in range(len(sample_weights))]
+
+    print(sample_states[0][:, 0])
+    print(sample_states[0][:, 1])
 
     sample_traces = [ {
-        "x": sample_states[i][:, 0],   #.tolist()
+        "x": sample_states[i][:, 0],
         "y": sample_states[i][:, 1],
-        "mode": "lines",
+        "mode": "lines+markers",
         "showlegend": False,
-        "line": {"color": sample_color},
+        "line": {"color": sample_colors[i]},
         "name": f"sample {i}",
-        "text": f"cost: {round(sample_costs[i], 1)}, weight: {round(sample_weights[i], 6)}",
-    } for i in range(nSamples) ]
-
-    """
-    # If hit an obstacle, make orange
-    if sample_cost > cost_threshold:
-        sample_color = f"rgba(255,140,16,{sample_alpha})"
-    else:
-        # maps to 0-1, then to 0-255
-        sample_cost_scaled = round(
-            255*float((sample_cost - min_cost) / range_cost))
-        sample_color = f"rgba({sample_cost_scaled},0,{255-sample_cost_scaled},{sample_alpha})"
-    """
+        "text": f"cost: {round(sample_costs[i], 1)}, weight: {sample_weights[i]}",
+    } for i in range(num_samples) ]
 
     return sample_traces
 
@@ -145,6 +173,7 @@ def plot_experiment_at_timestep(result:ExperimentStorage, step_index:int) -> go.
     traces.append(get_trace_of_nominal_traj_after(step_data))
 
     layout = update_plot_layout_with_map( {}, result.get_environment_path() )
+    layout = update_layout_with_goal_state( layout, result.get_config() )
 
     layout["xaxis"] = {'showgrid': False, 'zeroline': False}
     layout["yaxis"] = {'showgrid': False, 'zeroline': False}

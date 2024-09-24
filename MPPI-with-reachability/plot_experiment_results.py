@@ -1,17 +1,19 @@
 from dash import Dash, dcc, html
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
-import os
 from omegaconf import OmegaConf
+from pathlib import Path
 
 import plot_traj
 from experiment_storage import ExperimentStorage
 
 
+experiments_path = Path('experiments')
+
 # Function to get the list of available experiments from a directory
 def get_experiment_list(directory):
     # Might want to filter for experiments that are finished
-    return sorted([f for f in os.listdir(directory)])   # if f.isidr()
+    return sorted(experiments_path.iterdir())
 
 # Function to get the result data in a readable format
 def format_dict_for_display(stored_result: ExperimentStorage):
@@ -59,25 +61,25 @@ app.layout = html.Div([
     Input('experiment-dropdown', 'value')
 )
 def update_experiment_dropdown(value):
-    experiment_dir = 'experiments'
-    experiments = get_experiment_list(experiment_dir)
-    return [{'label': exp, 'value': os.path.join(experiment_dir, exp)} for exp in experiments]
+    experiments = get_experiment_list(experiments_path)
+    return [{'label': str(exp), 'value': str(exp)} for exp in experiments]
 
 
 # Callback to update timestep slider based on selected experiment
 @app.callback(
     Output('timestep-slider', 'max'),
     Output('timestep-slider', 'marks'),
+    Output('timestep-slider', 'value'),
     Input('experiment-dropdown', 'value')
 )
 def update_timestep_slider(selected_experiment):
     if selected_experiment is None:
-        return 0, {}
+        return 0, {}, 0
 
     num_timesteps = ExperimentStorage(selected_experiment).get_num_timesteps()
 
     marks = {i: str(i) for i in range(num_timesteps)}
-    return num_timesteps - 1, marks
+    return num_timesteps - 1, marks, 0
 
 
 # Callback to display the experiment result for the selected timestep
@@ -97,7 +99,6 @@ def display_timestep(selected_experiment, selected_timestep):
     details_str = format_dict_for_display(stored_result)
 
     return fig, details_str
-    #return dcc.Graph(figure=fig, style={'width': '98vw', 'height': '80vh'})
 
     # return f'Displaying raw data for timestep {selected_timestep}: {step_data}'
 
