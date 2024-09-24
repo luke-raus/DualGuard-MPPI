@@ -6,22 +6,21 @@ from experiment_storage import ExperimentStorage
 from experiment_runner import ExperimentRunner
 
 
-experiments_path = Path('experiments_again')
+experiments_path = Path('experiments_text')
 
-default_config_fname   = Path('config') / 'default_config.yaml'
-control_profiles_fname = Path('config') / 'control_profiles.yaml'
+default_config_fname    = Path('config') / 'default_config.yaml'
+control_profiles_fname  = Path('config') / 'control_profiles.yaml'
+trial_state_pairs_fname = Path('config') / 'trial_state_pairs.json'
 
-num_samples_opts = [20]#, 36, 60, 100, 250, 500, 1000, 2000]
+num_samples_opts = [20, 36, 60, 100, 250, 500, 1000]
 
-num_trials_per_config = 10 #0
+num_trials_per_config = 100
 
 save_samples = True
 
 
-with open('config/dubin_environment_state_pairs.json', 'r') as f:
-    states = json.load(f)
-    init_goal_state_pairs = [ {'init':states['init'][i], 'goal':states['goal'][i]}
-                              for i in range(len(states['init'])) ]
+with open(trial_state_pairs_fname, 'r') as f:
+    init_goal_state_pairs = json.load(f)
     init_goal_state_pairs = init_goal_state_pairs[:num_trials_per_config]
 
 control_profiles = OmegaConf.load(control_profiles_fname)
@@ -30,7 +29,7 @@ control_profiles = OmegaConf.load(control_profiles_fname)
 # === Set up experiment configurations ===
 
 for num_samples in num_samples_opts:
-    for state_ind, init_goal_state_pair in enumerate(init_goal_state_pairs):
+    for trial_ind, init_goal_state_pair in enumerate(init_goal_state_pairs):
         for control_ind, (profile_name, settings) in enumerate(control_profiles.items()):
 
             # Load default config
@@ -45,7 +44,7 @@ for num_samples in num_samples_opts:
             config.save_samples = save_samples
 
             # Set & create experiment directory, then save config file
-            exp_fname = f"exp_samples-{num_samples:04}_trial-{state_ind:03}_control-{control_ind}"
+            exp_fname = f"exp_samples-{num_samples:04}_trial-{trial_ind:03}_control-{control_ind}"
 
             experiment_dir = experiments_path / exp_fname
             experiment_dir.mkdir(parents=True, exist_ok=False)
