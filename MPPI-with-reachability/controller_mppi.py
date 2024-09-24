@@ -8,9 +8,9 @@ class MPPI():
     Model Predictive Path Integral control
     This implementation batch samples the trajectories and so scales well with the number of samples K.
 
-    Implemented according to algorithm 2 in Williams et al., 2017
-    'Information Theoretic MPC for Model-Based Reinforcement Learning',
-    based off of https://github.com/ferreirafabio/mppi_pendulum
+    This implementation derived from: https://github.com/ferreirafabio/mppi_pendulum
+    which was implemented according to algorithm 2 in Williams et al., 2017
+    'Information Theoretic MPC for Model-Based Reinforcement Learning'
     """
 
     def __init__(self,
@@ -18,8 +18,8 @@ class MPPI():
         running_cost: Callable,
         nx:           int,
         noise_sigma:  np.ndarray,
-        num_samples:  int = 100,
-        horizon:      int = 15,
+        num_samples:  int,
+        horizon:      int,
         terminal_state_cost: Callable = None,
         lambda_:      float = 1.,
         noise_mu:     np.ndarray = None,
@@ -36,7 +36,9 @@ class MPPI():
         brt_opt_ctrl_query:    Callable = None,
         brt_value_query:       Callable = None,
         brt_theta_deriv_query: Callable = None,
-        diagnostics:               bool = False):
+        random_seed:                int = None,
+        diagnostics:               bool = False,
+    ):
         """
         :param dynamics: function(state, action) -> next_state (K x nx) taking in batch state (K x nx) and action (K x nu)
         :param running_cost: function(state, action) -> cost (K) taking in batch state and action (same as dynamics)
@@ -104,7 +106,7 @@ class MPPI():
         else:
             self.noise_sigma_inv = np.linalg.inv( self.noise_sigma )
 
-        self.numpy_rand_gen = np.random.default_rng(seed=None)
+        self.numpy_rand_gen = np.random.default_rng(seed=random_seed)
 
         # T x nu control sequence
         self.u_init = u_init
@@ -218,13 +220,17 @@ class MPPI():
                 # --- SAFETY FILTERING (Pre-emptive) ---
                 # Try dynamics with preliminarily-filtered controls
                 potential_next_state = self._dynamics(state, u, t)
-                
-                # If this control takes system into unsafe state, apply safety controller preemptively
+
+                # If this control takes system into unsafe state, apply safety controller preemptively on these samples
                 next_state_is_unsafe = self.brt_safety_query(potential_next_state)
                 u[next_state_is_unsafe,:] = self.brt_opt_ctrl_query(state[next_state_is_unsafe,:])
 
-                state[~next_state_is_unsafe,:] = potential_next_state[~next_state_is_unsafe,:]
-                state[ next_state_is_unsafe,:] = self._dynamics(state[ next_state_is_unsafe,:], u[next_state_is_unsafe,:], t)
+                potential_next_state[next_state_is_unsafe,:] = self._dynamics(state[next_state_is_unsafe,:], u[next_state_is_unsafe,:], t)
+                # NOTE! Had a nasty bug where the above 2 lines modified `state` directly`
+                # This meant we never had state set directly to a fresh array, and were instead updated in-place
+                # which meant that we were effectively appending *references* of state to the list, all of which changed when we changed state
+                # Hence the stacked array had the same state for every timestep. SMH!
+                state = potential_next_state
 
                 sample_brt_values.append( self.brt_value_query(state) )
                 sample_safety_filter.append( next_state_is_unsafe )
@@ -244,7 +250,7 @@ class MPPI():
             # Save total states/actions
             sampled_actions.append(u)
             sampled_states.append(state)
-  
+
         # Actions is:  K x T x nu
         # States is:   K x T x nx
         sampled_actions = np.stack(sampled_actions, axis=-2)
@@ -259,12 +265,12 @@ class MPPI():
             self.sample_brt_values       = []
             self.sample_safety_filter    = []
             self.sample_brt_theta_deriv  = []
-        
 
         # action perturbation cost
         if self.terminal_state_cost:
             c = self.terminal_state_cost(sampled_states, sampled_actions)
             cost_total = cost_total + c
+
         return cost_total, sampled_states, sampled_actions
 
     def _compute_total_cost_batch(self):

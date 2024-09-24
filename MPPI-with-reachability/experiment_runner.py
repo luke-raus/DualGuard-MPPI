@@ -54,7 +54,7 @@ class ExperimentRunner:
             brt_opt_ctrl_query  = self.environment.get_brt_safety_control,
             brt_value_query     = self.environment.get_brt_value,
             brt_theta_deriv_query = self.environment.get_brt_theta_deriv,
-            diagnostics = False,
+            random_seed = int(self.config.init_state[0]**2 * 1e6),
         )
 
     def run(self) -> ExperimentResult:
@@ -68,7 +68,7 @@ class ExperimentRunner:
 
 
         max_timesteps = int(config.trial_max_duration / config.timestep)
-        safety_filter = config.apply_safety_filter_to_final_chosen_control,
+        safety_filter_enabled = config.apply_safety_filter_to_final_chosen_control,
 
         goal_reached, crashed = False, False
         running_cost = 0
@@ -96,7 +96,7 @@ class ExperimentRunner:
             next_state_unsafe = bool(map.check_brt_collision( np.expand_dims(potential_next_state, axis=0) ))
 
             # If relevant, override MPPI-chosen control action with safety control
-            safety_filter_activated = ( (measured_state_is_unsafe or next_state_unsafe) and safety_filter)
+            safety_filter_activated = ( (measured_state_is_unsafe or next_state_unsafe) and safety_filter_enabled)
             if safety_filter_activated:
                 # Safety filter activated! Choose action using BRT safety controller
                 action = map.get_brt_safety_control( np.expand_dims(system.state, axis=0) ).squeeze(axis=0)
@@ -116,8 +116,6 @@ class ExperimentRunner:
             if print_progress:
                 #if i % 10 == 0:
                 print(f"controller iteration {i}, time elapsed: {timer_elapsed:.6f}")
-
-            # print(controller.sampled_states)
 
             result.capture_timestep(
                 index = i,
