@@ -37,17 +37,27 @@ class ExperimentStorage:
 
         # Save timesteps as groups in hdf5 file
         with h5py.File(self.details_fname, 'w') as hdf_file:
+
+            # Save overall trajectory results in group; TODO finish this
+            group = hdf_file.create_group('overall')
+            group.create_dataset('state_trajectory', data=result.get_total_trajectory())
+
+            attributes = [
+                'control_chosen',
+                'control_overridden_by_safety_filter',
+                'control_compute_time'
+            ]
+            for attribute in attributes:
+                group.create_dataset(attribute, data=result.get_attribute_across_timesteps(attribute))
+
+            # Save details of each control iteration it its own group
             for timestep in result.timesteps:
                 index = timestep['index']
                 group = hdf_file.create_group(f'step_{index}')
                 for key, data in timestep.items():
                     group.create_dataset(key, data=data)
 
-            # Save overall state trajectory sequence in its own dataset
-            state_trajectory = [ step['current_state_measurement'] for step in result.timesteps ]
-            # Since the above states are measured at the start of a controller iteration, append last state
-            state_trajectory.append(self.summary.terminal_state)
-            hdf_file.create_dataset('state_trajectory', data=state_trajectory)
+
 
     def get_config(self) -> dict|None:
         if self.config is not None:

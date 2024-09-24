@@ -1,9 +1,13 @@
 # control profile params (for ablation)
 control_profile: Vanilla MPPI with obstacle costs
-apply_safety_filter_to_final_chosen_control: false
+apply_safety_filter_to_final_control:      false
 apply_safety_filter_to_nominal_trajectory: false
-apply_safety_filter_to_samples: false
-cost_from_obstacles_or_BRT: obs     # one of: obs, brt
+apply_safety_filter_to_samples:            false
+cost_from_obstacles_or_BRT:                obs     # one of: obs, brt
+
+# key mppi ablation params
+mppi_samples: 500        # Number of samples to forward-simulate
+mppi_horizon: 25         # How many dynamics steps to propagate per sample
 
 # output params
 save_samples: false
@@ -17,9 +21,7 @@ timestep: 0.02           # dynamics update time interval (s)
 trial_max_duration: 15   # after this much time, trial terminates (s)
 
 # mppi params
-mppi_samples: 500        # Number of samples to forward-simulate
-mppi_horizon: 25         # How many dynamics steps to propagate per sample
-mppi_temperature: 5.0    # Higher means update incorporates votes of more samples 
+mppi_temperature: 5.0    # Higher means update incorporates votes from more samples 
 mppi_angvel_control_noise_mean:    0.0   # mean of control noise (rad/s)
 mppi_angvel_control_noise_stddev:  8.0   # stddev of control noise (rad/s)
 mppi_initial_control_is_mean:      false # if True, initial control is noise_mean; else random

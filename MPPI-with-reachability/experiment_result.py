@@ -1,7 +1,5 @@
 from omegaconf import OmegaConf
-from pathlib import Path
 import numpy as np   # only needed for type-checking
-import h5py
 
 
 class ExperimentResult:
@@ -45,16 +43,16 @@ class ExperimentResult:
         control_chosen: np.ndarray,
         control_overridden_by_safety_filter: bool,
     ) -> None:
-        # See results_config.yaml for explanation/grouping of parameters
 
+        # See results_config.yaml for explanation/grouping of parameters
         # Capture all arguments (since they're mandatory!)
         #    in a dict with locals(), but exclude 'self' and possible sample-related
         timestep = locals()
-        timestep.pop("self")
+        del timestep["self"]
 
         if not self.save_samples:
             for sample_key in self.sample_related_keys:
-                timestep.pop(sample_key)
+                del timestep[sample_key]
 
         self.timesteps.append(timestep)
 
@@ -68,8 +66,18 @@ class ExperimentResult:
         control_compute_time_avg: float,
         control_compute_time_std: float,
     ) -> None:
+
         summary = locals()
-        summary.pop("self")  # Exclude 'self'
+        del summary["self"]
         # For OmegaConf compatibility
         summary["terminal_state"] = [float(x) for x in summary["terminal_state"]]
         self.summary = OmegaConf.create(summary)
+
+    def get_total_trajectory(self) -> list:
+        trajectory = self.get_attribute_across_timesteps('current_state_measurement')
+        # Since above states are measured at the start of each controller iteration, add final state
+        trajectory.append(self.summary.terminal_state)
+        return trajectory
+
+    def get_attribute_across_timesteps(self, attribute:str) -> list:
+        return [step[attribute] for step in self.timesteps]

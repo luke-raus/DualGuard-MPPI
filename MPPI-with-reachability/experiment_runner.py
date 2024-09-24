@@ -57,6 +57,10 @@ class ExperimentRunner:
             random_seed = int(self.config.init_state[0]**2 * 1e6),
         )
 
+        self.safety_filter_enabled = self.config.apply_safety_filter_to_final_control
+        self.max_timesteps = int(self.config.trial_max_duration / self.config.timestep)
+
+
     def run(self) -> ExperimentResult:
 
         config = self.config
@@ -67,13 +71,10 @@ class ExperimentRunner:
         result = ExperimentResult(save_samples=config.save_samples)
 
 
-        max_timesteps = int(config.trial_max_duration / config.timestep)
-        safety_filter_enabled = config.apply_safety_filter_to_final_chosen_control,
-
         goal_reached, crashed = False, False
         running_cost = 0
 
-        for i in range(max_timesteps):
+        for i in range(self.max_timesteps):
 
             # Capture nominal trajectory before MPPI runs
             nominal_traj_controls_before = controller.U
@@ -96,7 +97,7 @@ class ExperimentRunner:
             next_state_unsafe = bool(map.check_brt_collision( np.expand_dims(potential_next_state, axis=0) ))
 
             # If relevant, override MPPI-chosen control action with safety control
-            safety_filter_activated = ( (measured_state_is_unsafe or next_state_unsafe) and safety_filter_enabled)
+            safety_filter_activated = ( (measured_state_is_unsafe or next_state_unsafe) and self.safety_filter_enabled)
             if safety_filter_activated:
                 # Safety filter activated! Choose action using BRT safety controller
                 action = map.get_brt_safety_control( np.expand_dims(system.state, axis=0) ).squeeze(axis=0)
