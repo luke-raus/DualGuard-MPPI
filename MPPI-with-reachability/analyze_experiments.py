@@ -1,51 +1,75 @@
-from omegaconf import OmegaConf
 from pathlib import Path
 import pandas as pd
 
 from experiment_storage import ExperimentStorage
 
 
-experiments_path = Path('experiments')
-control_profiles_fname = Path('config') / 'control_profiles.yaml'
+experiments_dir = Path('experiments')
 
 
 
-control_profiles = OmegaConf.load(control_profiles_fname)
+def get_stats_for_configs(all_exp_df:pd.DataFrame) -> pd.DataFrame:
 
-experiments_info = [ExperimentStorage(x).get_all_experiment_info() for x in sorted(experiments_path.iterdir())]
-all_exp_df = pd.DataFrame(experiments_info)
-print(all_exp_df.keys())
-
-num_samples_settings = all_exp_df['mppi_samples'].unique().tolist()
-
-for num_samples in num_samples_settings:
+    # Each stat refers to a collection of trials with same # of samples & controller type
+    grouped = all_exp_df.groupby(['mppi_samples', 'control_profile'])
 
     config_results = []
 
-    for profile_name, settings in control_profiles.items():
+    for (num_samples, control_profile), group in grouped:
 
-        config_trials = all_exp_df.loc[   (all_exp_df['control_profile'] == profile_name) 
-                                        & (all_exp_df['mppi_samples'] == num_samples) ]
-        # Alternatively, filter for all relevant settings using filter_df_by_dict()
-
-        num_trials = len(config_trials)
+        num_trials = len(group)
 
         results = {
-            'profile name': profile_name,
-            'mppi samples': num_samples,
-            'num trials':  num_trials,
-            'cost (avg ± std)': f"{config_trials['total_cost'].mean():.1f} ± {config_trials['total_cost'].std():.1f}",
-            'crashed (%)':      100 * config_trials['crashed'].sum() / num_trials,
-            'reached goal (%)': 100 * config_trials['goal_reached'].sum() / num_trials,
+            'samples':          num_samples,
+            'profile name':     control_profile,
+            'num trials':       num_trials,
+            'crashed (%)':      100 * group['crashed'     ].sum() / num_trials,
+            'reached goal (%)': 100 * group['goal_reached'].sum() / num_trials,
+            'absolute cost (avg ± std)':  f"{group['total_cost'   ].mean():.1f} ± {group['total_cost'   ].std():.1f}",
+            'relative cost* (avg ± std)': f"{group['relative_cost'].mean():.3f} ± {group['relative_cost'].std():.3f}",
         }
+
         config_results.append(results)
 
-    summary = pd.DataFrame(config_results)
+    # Convert the list of results to a DataFrame for summary
+    return pd.DataFrame(config_results)
 
-    print(f'\nSamples: {num_samples}')
+
+def compute_relative_costs(df:pd.DataFrame) -> pd.DataFrame:
+
+    def relative_cost(group):
+        # Check if all controllers succeeded on the episode
+        if group['goal_reached'].all():
+            # Get the cost of our method to use as reference for relative costs
+            reference_cost = group.loc[(group['control_profile'] == 'Sample-safe MPPI (our method)'), 'total_cost'].item()
+            group['relative_cost'] = group['total_cost'] / reference_cost
+        else:
+            # If not all controllers successful, return NaN for the entire group
+            # NOTE: Pandas complains about this operation
+            group['relative_cost'] = pd.NA
+        return group
+
+    result_df = df.groupby(['mppi_samples', 'init_state'], group_keys=False).apply(relative_cost)
+
+    # Revert grouping
+    result_df.reset_index(drop=True, inplace=True)
+
+    return result_df
+
+
+def load_experiment_results(exp_dir:Path) -> pd.DataFrame:
+    # if cached: return pd.read_csv(cached_results_csv)
+    exps = [ExperimentStorage(x).get_all_experiment_info() for x in sorted(exp_dir.iterdir())]
+    return pd.DataFrame(exps)
+
+
+if __name__ == "__main__":
+
+    all_exp_df = load_experiment_results(experiments_dir)
+    print(f"{len(all_exp_df)} experiments loaded")
+
+    all_exp_df = compute_relative_costs(all_exp_df)
+
+    summary = get_stats_for_configs(all_exp_df)
+    summary.to_csv('exp_stats.csv')
     print(summary)
-
-
-def filter_df_by_dict(df: pd.DataFrame, filter_dict: dict) -> pd.DataFrame:
-    # See: https://stackoverflow.com/a/34162576
-    return df.loc[(df[list(filter_dict)] == pd.Series(filter_dict)).all(axis=1)]
