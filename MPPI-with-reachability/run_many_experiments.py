@@ -1,50 +1,46 @@
 from omegaconf import OmegaConf
 from pathlib import Path
-import json
 
 from experiment_storage import ExperimentStorage
 from experiment_runner import ExperimentRunner
+from experiment_config import ExperimentConfigSchema
 
 
-experiments_path = Path('experiments_text')
+experiments_path = Path('experiments_sep_28')
 
-default_config_fname    = Path('config') / 'default_config.yaml'
-control_profiles_fname  = Path('config') / 'control_profiles.yaml'
-trial_state_pairs_fname = Path('config') / 'trial_state_pairs.json'
+default_config_fname     = Path('config') / 'default_config.yaml'
+controller_configs_fname = Path('config') / 'control_profiles.yaml'
+episode_configs_fname    = Path('config') / 'episode_params.yaml'
 
-num_samples_opts = [20, 36, 60, 100, 250, 500, 1000]
+mppi_samples_settings = [20, 36, 60, 100, 250, 500, 1000]
 
-num_trials_per_config = 100
+num_episodes = 100
 
 save_samples = True
 
 
-with open(trial_state_pairs_fname, 'r') as f:
-    init_goal_state_pairs = json.load(f)
-    init_goal_state_pairs = init_goal_state_pairs[:num_trials_per_config]
+config_schema = OmegaConf.structured(ExperimentConfigSchema)
+default_config = OmegaConf.load(default_config_fname)
+# Will error if default config does not conform to schema
+structured_default_config = OmegaConf.merge(config_schema, default_config)
 
-control_profiles = OmegaConf.load(control_profiles_fname)
-
+episode_configs    = OmegaConf.load(episode_configs_fname)[0:num_episodes]
+controller_configs = OmegaConf.load(controller_configs_fname)
 
 # === Set up experiment configurations ===
 
-for num_samples in num_samples_opts:
-    for trial_ind, init_goal_state_pair in enumerate(init_goal_state_pairs):
-        for control_ind, (profile_name, settings) in enumerate(control_profiles.items()):
+for mppi_samples in mppi_samples_settings:
+    for episode_config in episode_configs:
+        for control_ind, controller_config in enumerate(controller_configs):
 
-            # Load default config
-            config = OmegaConf.load(default_config_fname)
-
-            # Override defaults with this experiment's settings
-            config.update(settings)
-            config.control_profile = profile_name
-            config.mppi_samples = num_samples
-            config.init_state   = init_goal_state_pair['init']
-            config.goal_state   = init_goal_state_pair['goal']
+            # Update default config with this experiment's settings.
+            # Since default is structured, this errors if we try to add new keys.
+            config = OmegaConf.merge(structured_default_config, episode_config, controller_config)
+            config.mppi_samples = mppi_samples
             config.save_samples = save_samples
 
             # Set & create experiment directory, then save config file
-            exp_fname = f"exp_samples-{num_samples:04}_trial-{trial_ind:03}_control-{control_ind}"
+            exp_fname = f"exp_samples-{mppi_samples:04}_ep-{episode_config['episode_id']:03}_control-{control_ind}"
 
             experiment_dir = experiments_path / exp_fname
             experiment_dir.mkdir(parents=True, exist_ok=False)
