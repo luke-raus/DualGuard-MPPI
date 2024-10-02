@@ -31,6 +31,7 @@ class ExperimentRunner:
             goal_state = self.config.goal_state,
             brt_fname  = self.config.brt_filename,
             brt_value_threshold = self.config.safety_filter_value_threshold,
+            goal_reward_dist = self.config.goal_state_threshold,
             cost_type = self.config.cost_from_obstacles_or_BRT,
         )
 
@@ -70,8 +71,6 @@ class ExperimentRunner:
 
         result = ExperimentResult(save_samples=config.save_samples)
 
-
-        goal_reached, crashed = False, False
         running_cost = 0
 
         for i in range(self.max_timesteps):
@@ -141,15 +140,11 @@ class ExperimentRunner:
             )
 
             # If we're close enough to goal, end trial successfully
-            if self.environment.get_dist_to_goal(system.state) < config.goal_state_threshold:
-                goal_reached = True
-                print('goal reached')
-                break
+            goal_reached = bool(self.environment.get_dist_to_goal(system.state) < config.goal_state_threshold)
 
-            # Check if we've collided with an obstacle; if so, end trial
-            if map.check_obs_collision(np.expand_dims(system.state, axis=0)):
-                crashed = True
-                print('crashed')
+            crashed = bool(map.check_obs_collision(np.expand_dims(system.state, axis=0)))
+
+            if goal_reached or crashed:
                 break
 
         result.capture_summary(

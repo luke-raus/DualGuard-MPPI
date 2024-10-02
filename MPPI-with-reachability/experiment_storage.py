@@ -80,11 +80,11 @@ class ExperimentStorage:
     def get_all_experiment_info(self) -> dict:
         self.get_summary()
         self.get_config()
-        return {'path':str(self.experiment_dir), **self.config, **self.summary}
+        return {'path':str(self.experiment_dir), **OmegaConf.to_object(self.config), **OmegaConf.to_object(self.summary)}
 
     def get_overall_trajectory(self) -> np.ndarray:
         with h5py.File(self.details_fname, 'r') as f:
-            traj = f['state_trajectory'][:]
+            traj = f['overall']['state_trajectory'][:]
         return traj
 
     def get_timestep_data(self, step_index:int) -> dict:

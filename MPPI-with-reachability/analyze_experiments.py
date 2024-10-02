@@ -37,7 +37,7 @@ def get_stats_for_configs(all_exp_df:pd.DataFrame) -> pd.DataFrame:
 
 def compute_relative_costs(df:pd.DataFrame) -> pd.DataFrame:
 
-    def relative_cost(group):
+    def update_with_relative_cost(group):
         # Check if all controllers succeeded on the episode
         if group['goal_reached'].all():
             # Get the cost of our method to use as reference for relative costs
@@ -49,7 +49,12 @@ def compute_relative_costs(df:pd.DataFrame) -> pd.DataFrame:
             group['relative_cost'] = pd.NA
         return group
 
-    result_df = df.groupby(['mppi_samples', 'init_state'], group_keys=False).apply(relative_cost)
+    # Pandas got upset if we passed columns with lists, so convert all lists to tuples
+    for col in df.columns:
+        if df[col].apply(lambda x: isinstance(x, list)).any():
+            df[col] = df[col].apply(tuple)
+
+    result_df = df.groupby(['mppi_samples', 'init_state'], group_keys=False).apply(update_with_relative_cost)
 
     # Revert grouping
     result_df.reset_index(drop=True, inplace=True)
@@ -71,5 +76,5 @@ if __name__ == "__main__":
     all_exp_df = compute_relative_costs(all_exp_df)
 
     summary = get_stats_for_configs(all_exp_df)
-    summary.to_csv('exp_stats.csv')
+    summary.to_csv('exp_stats.csv', index=False)
     print(summary)

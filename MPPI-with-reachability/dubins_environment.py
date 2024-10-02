@@ -12,7 +12,8 @@ class ClutteredMap:
                  init_state,
                  goal_state,
                  brt_fname,
-                 brt_value_threshold=0,
+                 brt_value_threshold,
+                 goal_reward_dist,
                  cost_type='obs'):
 
         self.progress_cost_weights       = running_state_cost_weights
@@ -22,7 +23,7 @@ class ClutteredMap:
 
         self.collision_cost = 1.e4
 
-        self.goal_reward_dist = 0.1   # m
+        self.goal_reward_dist = goal_reward_dist   # m
         self.goal_reward_cost = -1.e3
 
         self.init_state = init_state    # Should assert these are tensors of shape (3,)
@@ -99,7 +100,12 @@ class ClutteredMap:
         """
         states (K, nx=3) -> collision boolean (K,)
         """
-        return self.brt_obs_interp( states ) < 0.0
+        # return self.brt_obs_interp( states ) < 0.0
+
+        # NOTE: This is a quick & dirty way to fix bug where system going outside 
+        #       enclosure walls isn't being detected by obs grid value interpolation
+        wall = 5.0
+        return np.logical_or( self.brt_obs_interp(states)<0.0, abs(states[:,0])>wall, abs(states[:,1])>wall )
 
 
     def get_brt_value(self, states):
