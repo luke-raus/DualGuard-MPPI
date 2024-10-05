@@ -5,3 +5,4 @@ scipy
 plotly
 dash
 pandas
+matplotlib

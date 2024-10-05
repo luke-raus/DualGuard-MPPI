@@ -1,0 +1,6 @@
+.python-version
+
+__pycache__/
+archive/
+results/
+exp_*/
