@@ -4,8 +4,10 @@ import pandas as pd
 from experiment_storage import ExperimentStorage
 
 
-experiments_dir = Path('experiments')
+experiments_dir = Path('experiments_oct_1')
 
+exp_summaries_cache_fname = experiments_dir / '_stats' / 'exp_summaries.csv'
+exp_stats_fname           = experiments_dir / '_stats' / 'exp_stats.csv'
 
 
 def get_stats_for_configs(all_exp_df:pd.DataFrame) -> pd.DataFrame:
@@ -70,11 +72,15 @@ def load_experiment_results(exp_dir:Path) -> pd.DataFrame:
 
 if __name__ == "__main__":
 
-    all_exp_df = load_experiment_results(experiments_dir)
+    try:
+        all_exp_df = pd.read_csv( exp_summaries_cache_fname )
+    except FileNotFoundError:
+        all_exp_df = load_experiment_results(experiments_dir)
+        all_exp_df = compute_relative_costs(all_exp_df)
+        all_exp_df.to_csv(exp_summaries_cache_fname, index=False)
+
     print(f"{len(all_exp_df)} experiments loaded")
 
-    all_exp_df = compute_relative_costs(all_exp_df)
-
     summary = get_stats_for_configs(all_exp_df)
-    summary.to_csv('exp_stats.csv', index=False)
+    summary.to_csv(exp_stats_fname, index=False)
     print(summary)

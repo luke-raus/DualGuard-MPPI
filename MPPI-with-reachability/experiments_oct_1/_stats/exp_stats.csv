@@ -1,0 +1,36 @@
+samples,profile name,num trials,crashed (%),reached goal (%),absolute cost (avg ± std),relative cost* (avg ± std)
+20,Filtered MPPI with BRT costs,100,0.0,60.0,15758.1 ± 8861.5,1.229 ± 0.228
+20,Filtered MPPI with obstacle costs,100,0.0,76.0,12119.0 ± 8932.5,4.418 ± 4.811
+20,Sample-safe MPPI (our method),100,0.0,92.0,4625.2 ± 3523.9,1.000 ± 0.000
+20,Vanilla MPPI with BRT costs,100,94.0,6.0,46262.9 ± 33512.3,1.229 ± 0.228
+20,Vanilla MPPI with obstacle costs,100,76.0,18.0,14524.6 ± 21847.0,1.138 ± 0.156
+36,Filtered MPPI with BRT costs,100,0.0,74.0,12899.5 ± 9323.4,1.103 ± 0.223
+36,Filtered MPPI with obstacle costs,100,0.0,84.0,8592.0 ± 6748.8,1.722 ± 2.066
+36,Sample-safe MPPI (our method),100,0.0,95.0,3946.7 ± 2994.7,1.000 ± 0.000
+36,Vanilla MPPI with BRT costs,100,77.0,22.0,36913.6 ± 34115.6,1.103 ± 0.223
+36,Vanilla MPPI with obstacle costs,100,54.0,34.0,12996.8 ± 19993.2,2.277 ± 3.815
+60,Filtered MPPI with BRT costs,100,0.0,77.0,11628.6 ± 8218.2,1.773 ± 2.075
+60,Filtered MPPI with obstacle costs,100,0.0,93.0,6995.9 ± 5348.2,2.168 ± 2.770
+60,Sample-safe MPPI (our method),100,0.0,95.0,3862.3 ± 2943.2,1.000 ± 0.000
+60,Vanilla MPPI with BRT costs,100,74.0,24.0,35387.4 ± 29220.2,4.305 ± 11.472
+60,Vanilla MPPI with obstacle costs,100,42.0,47.0,12356.2 ± 19059.2,2.313 ± 4.058
+100,Filtered MPPI with BRT costs,100,0.0,78.0,10453.4 ± 8185.2,2.010 ± 1.713
+100,Filtered MPPI with obstacle costs,100,0.0,91.0,6061.2 ± 5391.6,1.422 ± 1.529
+100,Sample-safe MPPI (our method),100,0.0,95.0,3662.4 ± 2706.6,1.000 ± 0.000
+100,Vanilla MPPI with BRT costs,100,49.0,42.0,32389.4 ± 34767.2,2.780 ± 3.971
+100,Vanilla MPPI with obstacle costs,100,31.0,60.0,9593.8 ± 15824.1,2.168 ± 2.992
+250,Filtered MPPI with BRT costs,100,0.0,81.0,7861.5 ± 5891.1,2.050 ± 2.316
+250,Filtered MPPI with obstacle costs,100,0.0,93.0,4736.0 ± 3620.1,1.213 ± 0.438
+250,Sample-safe MPPI (our method),100,0.0,97.0,3525.0 ± 2673.7,1.000 ± 0.000
+250,Vanilla MPPI with BRT costs,100,23.0,65.0,18256.8 ± 27418.5,2.176 ± 2.450
+250,Vanilla MPPI with obstacle costs,100,17.0,81.0,5481.9 ± 8474.4,1.325 ± 0.653
+500,Filtered MPPI with BRT costs,100,0.0,81.0,7440.2 ± 5862.2,1.890 ± 1.576
+500,Filtered MPPI with obstacle costs,100,0.0,94.0,4365.6 ± 3416.0,1.243 ± 0.569
+500,Sample-safe MPPI (our method),100,0.0,98.0,3443.9 ± 2501.9,1.000 ± 0.000
+500,Vanilla MPPI with BRT costs,100,16.0,68.0,13627.4 ± 23257.4,2.002 ± 1.756
+500,Vanilla MPPI with obstacle costs,100,11.0,88.0,4953.6 ± 8654.9,1.337 ± 1.377
+1000,Filtered MPPI with BRT costs,100,0.0,87.0,5748.5 ± 4805.1,1.370 ± 0.731
+1000,Filtered MPPI with obstacle costs,100,0.0,93.0,3937.3 ± 2772.4,1.125 ± 0.348
+1000,Sample-safe MPPI (our method),100,0.0,98.0,3322.9 ± 2306.1,1.000 ± 0.000
+1000,Vanilla MPPI with BRT costs,100,11.0,79.0,11447.4 ± 23637.4,1.442 ± 0.932
+1000,Vanilla MPPI with obstacle costs,100,7.0,92.0,4580.5 ± 7618.4,1.300 ± 1.388
