@@ -5,16 +5,18 @@ from experiment_storage import ExperimentStorage
 from experiment_runner import ExperimentRunner
 from experiment_config import ExperimentConfigSchema
 
-
-experiments_path = Path('experiments_sep_28')
+#FIXME:update to final name
+experiments_path = Path('experiments')
 
 default_config_fname     = Path('config') / 'default_config.yaml'
 controller_configs_fname = Path('config') / 'control_profiles.yaml'
 episode_configs_fname    = Path('config') / 'episode_params.yaml'
 
-mppi_samples_settings = [20, 36, 60, 100, 250, 500, 1000]
-
-num_episodes = 100
+#FIXME: Keep the deafults as low as possible, new users want to check if it works before commiting for a full day stuck in sim
+#mppi_samples_settings = [20, 36, 60, 100, 250, 500, 1000]
+mppi_samples_settings = [20]
+#num_episodes = 100
+num_episodes = 5
 
 save_samples = True
 

@@ -22,6 +22,7 @@ class ClutteredMap:
         self.action_cost_weights = action_cost_weights
 
         self.collision_cost = 1.e4
+        self.shield_beta = 0.5
 
         self.goal_reward_dist = goal_reward_dist   # m
         self.goal_reward_cost = -1.e3
@@ -92,6 +93,8 @@ class ClutteredMap:
             return self.collision_cost * self.check_obs_collision(states)
         elif self.cost_type == 'brt':
             return self.collision_cost * self.check_brt_collision(states)
+        elif self.cost_type == 'shield':
+            return self.collision_cost * self.get_shield_cost(states)
         else:
             raise('Undefined obstacle type')
 
@@ -104,6 +107,7 @@ class ClutteredMap:
 
         # NOTE: This is a quick & dirty way to fix bug where system going outside 
         #       enclosure walls isn't being detected by obs grid value interpolation
+        # FIXME: find a better way to handle this
         wall = 5.0
         return np.logical_or( self.brt_obs_interp(states)<0.0, abs(states[:,0])>wall, abs(states[:,1])>wall )
 
@@ -120,6 +124,22 @@ class ClutteredMap:
         states (K, nx=3) -> collision boolean (K,)
         """
         return self.get_brt_value( states ) <= self.brt_value_threshold
+ 
+      
+    def get_shield_cost(self, states):
+        """
+        states (K, nx=3) -> shield cost (K,)
+        """
+        
+        values = self.get_brt_value(states)      
+        values = np.nan_to_num(values, nan=-1.0) # Out of bounds gives NaN, we replace with high negative value
+        
+        # shield cost = -value + (1-beta)*value_prev
+        costs = np.zeros_like(values)
+        costs[0] = 0
+        costs[1:] = -values[1:] + (1 - self.shield_beta) * values[:-1]   
+
+        return np.maximum(costs, 0)
 
 
     def get_brt_theta_deriv(self, states):

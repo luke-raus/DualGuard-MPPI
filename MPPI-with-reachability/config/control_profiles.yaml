@@ -1,3 +1,5 @@
+# FIXME: decide on the final names for the profiles 
+
 - control_profile:                      Vanilla MPPI with obstacle costs
   apply_safety_filter_to_final_control: false
   apply_safety_filter_to_samples:       false
@@ -17,6 +19,11 @@
   apply_safety_filter_to_final_control: true
   apply_safety_filter_to_samples:       false
   cost_from_obstacles_or_BRT:           brt
+
+- control_profile:                      Shield MPPI
+  apply_safety_filter_to_final_control: true
+  apply_safety_filter_to_samples:       false
+  cost_from_obstacles_or_BRT:           shield
 
 - control_profile:                      Sample-safe MPPI (our method)
   apply_safety_filter_to_final_control: true   # Hopefully, shouldn't matter

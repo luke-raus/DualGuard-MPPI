@@ -216,7 +216,8 @@ class MPPI():
         for t in range(T):
             u = self.perturbed_action[:, t]
             if self.filter_samples:
-
+                
+                # FIXME: We shouldnt be checking anything in a preemptively fashion, if the value function is below a small threshold at the current timestep we filter!
                 # --- SAFETY FILTERING (Pre-emptive) ---
                 # Try dynamics with preliminarily-filtered controls
                 potential_next_state = self._dynamics(state, u, t)

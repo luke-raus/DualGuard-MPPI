@@ -4,3 +4,4 @@ __pycache__/
 archive/
 results/
 exp_*/
+mppi_sim/
