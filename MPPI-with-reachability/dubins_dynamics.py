@@ -59,6 +59,8 @@ class DubinsCarFixedVel():
         # Get indices of zero-inputs for regular straight-line integration
         no_steer = (angvel == 0.0)
 
+        # FIXME: This dubins integration seems overly complex for a fixed-velocity model we should use the usual form which should be faster an has no weird edge cases   
+        # check discrete_dynamics() in experiment_runner.py for a simpler version     
         # Compute turning radius -> steering center -> new state x/y as above
         # This won't fail if omega=0: will just produce NaN/Inf's
         d_theta = self.timestep * angvel

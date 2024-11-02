@@ -8,7 +8,7 @@ import plot_traj
 from experiment_storage import ExperimentStorage
 
 
-experiments_path = Path('experiments')
+experiments_path = Path('exp_shield')
 
 # Function to get the list of available experiments from a directory
 def get_experiment_list(directory):

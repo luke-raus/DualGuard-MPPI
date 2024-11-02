@@ -1,5 +1,5 @@
 [
-{episode_id: "000",  init_state: [ 3.375550,  3.482979,  2.604091],  goal_state: [ 4.077618, -1.965385, 0] },   # goal theta should maybe be .NAN
+{episode_id: "000",  init_state: [ 4.55550,  -2.182979, -3.079091],  goal_state: [-2.965385,  0.077618, 0] },   # goal theta should maybe be .NAN
 {episode_id: "001",  init_state: [-4.158205, -3.151707, -1.372350],  goal_state: [ 1.307028,  3.911144, 0] },
 {episode_id: "002",  init_state: [ 3.869456, -2.549634,  2.587896],  goal_state: [-2.242927, -4.240070, 0] },
 {episode_id: "003",  init_state: [ 2.390616, -4.271834, -1.316366],  goal_state: [ 0.891258,  4.024178, 0] },

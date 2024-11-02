@@ -5,3 +5,4 @@ archive/
 results/
 exp_*/
 mppi_sim/
+.vscode/launch.json

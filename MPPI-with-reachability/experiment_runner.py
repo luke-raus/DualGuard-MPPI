@@ -8,6 +8,46 @@ from experiment_storage import ExperimentStorage
 import time
 import numpy as np
 
+from scipy.optimize import minimize
+
+# nonlinear predictive filter
+def control_shielding(u, q0, N, dt, V, beta, map):
+    # Parameters
+    # V: Speed of the car
+    # N: horizon that control shielding taken into account
+    # dt: Time discretization step
+
+    def discrete_dynamics(q, w, V):
+        x, y, theta= q
+        next_q = np.zeros(3)
+        next_q[0] = x + dt * V * np.cos(theta)
+        next_q[1] = y + dt * V * np.sin(theta)
+        next_q[2] = theta + dt * w
+        next_q[2] = (next_q[2] + np.pi) % (2 * np.pi) - np.pi
+        return next_q
+
+    # Objective function
+    def control_shielding_objective(U, q_init, N, V, beta, map):
+        J = 0.0
+        q = q_init.copy()  # Initial state
+        for k in range(N):
+            w = U[k]
+            next_q = discrete_dynamics(q, w, V)
+            J += min( map.get_brt_value(next_q) - (1-beta) * map.get_brt_value(q), 0)
+            q = next_q
+        return -J  # Negate to convert maximization to minimization
+
+    # reshape control input to a 1D sequence for minimize method
+    # reshaped_u = u[:N, ...].copy()
+    # reshaped_u = reshaped_u.reshape(np.prod(reshaped_u.shape))
+
+    # Run optimization, passing the initial state as an argument
+    result = minimize(control_shielding_objective, u.squeeze(), args=(q0, N, V, beta, map), method='BFGS', options={"maxiter": 10})
+
+    # Extract optimized control sequence
+    opt_U = result.x
+    return np.array([opt_U[0]])
+
 
 class ExperimentRunner:
 
@@ -95,7 +135,6 @@ class ExperimentRunner:
             potential_next_state = system.next_states(system.state, mppi_action)
             next_state_unsafe = bool(map.check_brt_collision( np.expand_dims(potential_next_state, axis=0) ))
 
-            # TODO: add case for approximate repair step for shield MPPI
             # If relevant, override MPPI-chosen control action with safety control
             safety_filter_activated = ( (measured_state_is_unsafe or next_state_unsafe) and self.safety_filter_enabled)
             if safety_filter_activated:
@@ -103,6 +142,12 @@ class ExperimentRunner:
                 action = map.get_brt_safety_control( np.expand_dims(system.state, axis=0) ).squeeze(axis=0)
             else:
                 action = mppi_action
+                
+            # TODO: first implementation seems to work, check again after fixing other bugs
+            if config.cost_from_obstacles_or_BRT == 'shield':
+              shield_hor = 5
+              action = control_shielding(controller.U, system.state, shield_hor, config.timestep, config.dynamics_linvel, map.shield_beta, map)
+              
 
             cost, _ = map.get_state_progress_and_obstacle_costs( np.expand_dims(system.state, axis=0), np.expand_dims(mppi_action, axis=0))
             cost = float(cost.squeeze(axis=0))

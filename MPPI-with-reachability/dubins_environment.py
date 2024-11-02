@@ -22,7 +22,7 @@ class ClutteredMap:
         self.action_cost_weights = action_cost_weights
 
         self.collision_cost = 1.e4
-        self.shield_beta = 0.5
+        self.shield_beta = 0.8
 
         self.goal_reward_dist = goal_reward_dist   # m
         self.goal_reward_cost = -1.e3
@@ -31,7 +31,7 @@ class ClutteredMap:
         self.goal_state = goal_state
 
         self.cost_type = cost_type
-        assert (self.cost_type=='obs') or (self.cost_type=='brt')
+        assert (self.cost_type=='obs') or (self.cost_type=='brt') or (self.cost_type=='shield')
 
         # --- Load BRT from .hdf5 file ---
 
@@ -94,7 +94,7 @@ class ClutteredMap:
         elif self.cost_type == 'brt':
             return self.collision_cost * self.check_brt_collision(states)
         elif self.cost_type == 'shield':
-            return self.collision_cost * self.get_shield_cost(states)
+            return self.collision_cost * self.get_shield_cost(states) *10.0  #HACK: scaling factor
         else:
             raise('Undefined obstacle type')
 
@@ -139,7 +139,7 @@ class ClutteredMap:
         costs[0] = 0
         costs[1:] = -values[1:] + (1 - self.shield_beta) * values[:-1]   
 
-        return np.maximum(costs, 0)
+        return np.clip(costs,0.0,np.inf) #max with  0
 
 
     def get_brt_theta_deriv(self, states):

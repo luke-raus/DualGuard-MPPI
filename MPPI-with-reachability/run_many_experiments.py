@@ -6,7 +6,7 @@ from experiment_runner import ExperimentRunner
 from experiment_config import ExperimentConfigSchema
 
 #FIXME:update to final name
-experiments_path = Path('experiments')
+experiments_path = Path('exp_shield')
 
 default_config_fname     = Path('config') / 'default_config.yaml'
 controller_configs_fname = Path('config') / 'control_profiles.yaml'
@@ -16,7 +16,7 @@ episode_configs_fname    = Path('config') / 'episode_params.yaml'
 #mppi_samples_settings = [20, 36, 60, 100, 250, 500, 1000]
 mppi_samples_settings = [20]
 #num_episodes = 100
-num_episodes = 5
+num_episodes = 3
 
 save_samples = True
 
