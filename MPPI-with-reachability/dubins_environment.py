@@ -43,9 +43,9 @@ class ClutteredMap:
 
             self.brt_grid_axes = tuple([ hdf_file['brt_axes'][f'axis_{i}'][:] for i in range(self.brt_value.ndim) ])
 
-        self.brt_obs_interp         = SciPyRGI(self.brt_grid_axes, self.obs_value, bounds_error=False)
-        self.brt_value_interp       = SciPyRGI(self.brt_grid_axes, self.brt_value, bounds_error=False)
-        self.brt_theta_deriv_interp = SciPyRGI(self.brt_grid_axes, self.brt_theta_deriv)
+        self.brt_obs_interp         = SciPyRGI(self.brt_grid_axes, self.obs_value, method='linear', bounds_error=False, fill_value=-1.0)
+        self.brt_value_interp       = SciPyRGI(self.brt_grid_axes, self.brt_value, method='linear', bounds_error=False, fill_value=-1.0)
+        self.brt_theta_deriv_interp = SciPyRGI(self.brt_grid_axes, self.brt_theta_deriv, method='linear')
 
         self.brt_value_threshold = brt_value_threshold
 
@@ -103,13 +103,7 @@ class ClutteredMap:
         """
         states (K, nx=3) -> collision boolean (K,)
         """
-        # return self.brt_obs_interp( states ) < 0.0
-
-        # NOTE: This is a quick & dirty way to fix bug where system going outside 
-        #       enclosure walls isn't being detected by obs grid value interpolation
-        # FIXME: find a better way to handle this
-        wall = 5.0
-        return np.logical_or( self.brt_obs_interp(states)<0.0, abs(states[:,0])>wall, abs(states[:,1])>wall )
+        return self.brt_obs_interp(states) <= 0.0
 
 
     def get_brt_value(self, states):
@@ -131,8 +125,7 @@ class ClutteredMap:
         states (K, nx=3) -> shield cost (K,)
         """
         
-        values = self.get_brt_value(states)      
-        values = np.nan_to_num(values, nan=-1.0) # Out of bounds gives NaN, we replace with high negative value
+        values = self.get_brt_value(states)
         
         # shield cost = -value + (1-beta)*value_prev
         costs = np.zeros_like(values)
