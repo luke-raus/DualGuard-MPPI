@@ -215,31 +215,19 @@ class MPPI():
         has_reached_goal = np.zeros_like(cost_total)
         for t in range(T):
             u = self.perturbed_action[:, t]
+
+            # Simple instantaneous safety filtering
             if self.filter_samples:
-                
-                # FIXME: We shouldnt be checking anything in a preemptively fashion, if the value function is below a small threshold at the current timestep we filter!
-                # --- SAFETY FILTERING (Pre-emptive) ---
-                # Try dynamics with preliminarily-filtered controls
-                potential_next_state = self._dynamics(state, u, t)
+                state_is_unsafe = self.brt_safety_query(state)
+                u[state_is_unsafe,:] = self.brt_opt_ctrl_query(state[state_is_unsafe,:])
 
-                # If this control takes system into unsafe state, apply safety controller preemptively on these samples
-                next_state_is_unsafe = self.brt_safety_query(potential_next_state)
-                u[next_state_is_unsafe,:] = self.brt_opt_ctrl_query(state[next_state_is_unsafe,:])
+            # Dynamics
+            state = self._dynamics(state, u, t)
 
-                potential_next_state[next_state_is_unsafe,:] = self._dynamics(state[next_state_is_unsafe,:], u[next_state_is_unsafe,:], t)
-                # NOTE! Had a nasty bug where the above 2 lines modified `state` directly`
-                # This meant we never had state set directly to a fresh array, and were instead updated in-place
-                # which meant that we were effectively appending *references* of state to the list, all of which changed when we changed state
-                # Hence the stacked array had the same state for every timestep. SMH!
-                state = potential_next_state
-
-                sample_brt_values.append( self.brt_value_query(state) )
-                sample_safety_filter.append( next_state_is_unsafe )
-                sample_brt_theta_deriv.append( self.brt_theta_deriv_query(state) )
-            else:
-                # DYNAMICS
-                state = self._dynamics(state, u, t)
-
+            # sample_brt_values.append( self.brt_value_query(state) )
+            # sample_safety_filter.append( state_is_unsafe )
+            # sample_brt_theta_deriv.append( self.brt_theta_deriv_query(state) )
+            
             c, is_in_goal = self._running_cost(state, u, t)
 
             # Only accumulate cost for samples which have not reached goal

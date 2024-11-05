@@ -7,7 +7,7 @@ cost_from_obstacles_or_BRT:                obs     # one of: obs, brt
 
 # key mppi ablation params
 mppi_samples: 500        # Number of samples to forward-simulate
-mppi_horizon: 25         # How many dynamics steps to propagate per sample
+mppi_horizon: 100        # How many dynamics steps to propagate per sample
 
 # output params
 save_samples: false
@@ -17,7 +17,7 @@ init_state: [3.375, 3.482, 2.604]   # [x, y, theta] (m, m, rad)
 goal_state: [1.0, 1.0, 0.0]         # [x, y, theta] (m, m, rad)
 goal_state_threshold: 0.1           # (m) Refers to distance in XY plane (ignoring theta)
 
-timestep: 0.02           # dynamics update time interval (s)
+timestep: 0.005           # dynamics update time interval (s)
 trial_max_duration: 15   # after this much time, trial terminates (s)
 
 # mppi params
@@ -29,7 +29,7 @@ mppi_initial_control_is_mean:      false # if True, initial control is noise_mea
 # brt & safety filter params
 brt_filename: config/brt_dubins_cluttered_0.hdf5
 safety_filter_type: least_restrictive
-safety_filter_value_threshold: 0.01
+safety_filter_value_threshold: 0.02
 
 # dynamics params
 dynamics_name: dubins
