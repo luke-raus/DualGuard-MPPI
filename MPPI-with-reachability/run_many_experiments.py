@@ -6,7 +6,7 @@ from experiment_runner import ExperimentRunner
 from experiment_config import ExperimentConfigSchema
 
 #FIXME:update to final name
-experiments_path = Path('experiments_no_lookahead')
+experiments_path = Path('experiments_nov_6_no_lookahead')
 
 default_config_fname     = Path('config') / 'default_config.yaml'
 controller_configs_fname = Path('config') / 'control_profiles.yaml'

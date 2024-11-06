@@ -221,6 +221,8 @@ class MPPI():
                 state_is_unsafe = self.brt_safety_query(state)
                 u[state_is_unsafe,:] = self.brt_opt_ctrl_query(state[state_is_unsafe,:])
 
+                sample_safety_filter.append( state_is_unsafe )
+
             # Dynamics
             state = self._dynamics(state, u, t)
 
@@ -247,9 +249,9 @@ class MPPI():
 
         if self.filter_samples:
             # These are:     K x T x 1
-            self.sample_brt_values       = np.concatenate(sample_brt_values,      axis=-1)
+            self.sample_brt_values       = [] #np.concatenate(sample_brt_values,      axis=-1)
             self.sample_safety_filter    = np.concatenate(sample_safety_filter,   axis=-1)
-            self.sample_brt_theta_deriv  = np.concatenate(sample_brt_theta_deriv, axis=-1)
+            self.sample_brt_theta_deriv  = [] #np.concatenate(sample_brt_theta_deriv, axis=-1)
         else:
             self.sample_brt_values       = []
             self.sample_safety_filter    = []
