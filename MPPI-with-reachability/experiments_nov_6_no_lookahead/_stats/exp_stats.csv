@@ -1,0 +1,7 @@
+samples,profile name,num trials,crashed (%),reached goal (%),absolute cost (avg ± std),relative cost* (avg ± std)
+1000,Filtered MPPI with BRT costs,100,0.0,74.0,15852.6 ± 17783.6,1.902 ± 2.116
+1000,Filtered MPPI with obstacle costs,100,0.0,80.0,8760.5 ± 6322.0,1.352 ± 1.202
+1000,Sample-safe MPPI (our method),100,0.0,99.0,6069.3 ± 4439.3,1.000 ± 0.000
+1000,Shield MPPI,100,0.0,83.0,10314.1 ± 8427.0,1.320 ± 0.867
+1000,Vanilla MPPI with BRT costs,100,7.0,72.0,16918.7 ± 21973.3,1.886 ± 2.106
+1000,Vanilla MPPI with obstacle costs,100,50.0,49.0,5385.8 ± 4144.5,1.342 ± 1.187
