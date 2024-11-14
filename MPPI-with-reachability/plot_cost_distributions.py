@@ -10,12 +10,12 @@ plt.rcParams.update({
 })
 
 
-exp_summaries_fname = Path('experiments_oct_1') / '_stats' / 'exp_summaries.csv'
+exp_summaries_fname = Path('experiments_nov_6_no_lookahead') / '_stats' / 'exp_summaries.csv'
 
 df = pd.read_csv(exp_summaries_fname)
 
 controllers    = df['control_profile'].unique().tolist()
-samples_values = [20, 60, 250, 1000]  #df['mppi_samples'].unique().tolist()
+samples_values = [1000, 250, 60, 20]  #df['mppi_samples'].unique().tolist()
 
 
 
@@ -32,138 +32,110 @@ for (num_samples, controller), group in df.groupby(['mppi_samples', 'control_pro
     data[(controller, num_samples)] = (num_crashed, num_timed_out, finished_ep_costs)
 
 
+# controller_arrangement = [
+#     ['Vanilla MPPI with obstacle costs',  'Vanilla MPPI with BRT costs'],
+#     ['Filtered MPPI with obstacle costs', 'Filtered MPPI with BRT costs'],
+#     ['Shield MPPI',                       'Sample-safe MPPI (our method)']
+# ]
+controller_arrangement = [
+    ['Vanilla MPPI with obstacle costs',  'Filtered MPPI with obstacle costs'],
+    ['Shield MPPI',                       'Sample-safe MPPI (our method)']
+]
+
+
 controller_name_conversion = {
-    'Vanilla MPPI with obstacle costs':  'Obstacle costs',
-    'Vanilla MPPI with BRT costs':       'BRT costs',
-    'Filtered MPPI with obstacle costs': 'Obstacle costs + LR filter',
-    'Filtered MPPI with BRT costs':      'BRT costs + LR filter',
-    'Sample-safe MPPI (our method)':     'Proposed method',
+    'Vanilla MPPI with obstacle costs':  'Obs cost',
+    'Vanilla MPPI with BRT costs':       'BRT cost',
+    'Filtered MPPI with obstacle costs': 'Obs cost + LRF',
+    'Filtered MPPI with BRT costs':      'BRT cost + LRF',
+    'Shield MPPI':                       'Shield MPPI',
+    'Sample-safe MPPI (our method)':     'Our method',
 }
 
+nrows, ncols = 2, 2
 
-for i, controller in enumerate(controllers):
-    fig, axs = plt.subplots(
-        len(samples_values), 2,
-        width_ratios=[1, 1.2],   #[1, 2.4]
-        figsize=(5.0, 1.4),    #(5.0, 2.1) for for all 7 rows
-        gridspec_kw={'hspace': 0.05,    #h(eight)space between rows
-                     'wspace': 0.13})   #w(idth)space between cols
+fig = plt.figure(figsize=(5, 3.2))
+subfigs = fig.subfigures(nrows, ncols, wspace=0.04, hspace=0.07)
 
-    short_controller_name = controller_name_conversion[controller]
-    fig.suptitle(f'{short_controller_name}', weight='bold', x=0.02, y=1.04, ha='left')
+for row in range(nrows):
+    for col in range(ncols):
 
-    for j, num_samples in enumerate(samples_values):
+        subfig = subfigs[row, col]
 
-        # ---- Retrieve data ----
-        num_crashed, num_timed_out, finished_ep_costs = data[(controller, num_samples)]
+        controller = controller_arrangement[row][col]
+        short_controller_name = controller_name_conversion[controller]
+        subfig.suptitle(f'{short_controller_name}', weight='bold')
 
-        num_succeed = len(finished_ep_costs)
+        axs = subfig.subplots(len(samples_values), 1, sharey=True)
 
-        num_trials = num_succeed + num_timed_out + num_crashed
-        assert num_trials == 100
+        # dist_ax.set_xlabel('Episode cost distribution')
 
+        for samp_ind, num_samples in enumerate(samples_values):
 
-        # ---- Outcome plot ----
+            # ---- Retrieve data ----
+            num_crashed, num_timed_out, finished_ep_costs = data[(controller, num_samples)]
 
-        outcome_ax = axs[j, 0]
+            num_succeed = len(finished_ep_costs)
 
-        outcome_ax.barh(0, num_succeed,                                   color='tab:blue',   label='Reached goal')
-        outcome_ax.barh(0, num_timed_out, left=num_succeed,               color='tab:orange', label='Time expired')
-        outcome_ax.barh(0, num_crashed,   left=num_succeed+num_timed_out, color='tab:red',    label='Crashed')
-
-        outcome_ax.set_xlim(0, num_trials)
-
-        outcome_ax.set_yticklabels([])
-
-        outcome_ax.spines['top'].set_visible(False)
-        outcome_ax.spines['left'].set_visible(False)
-        outcome_ax.spines['right'].set_visible(True)
-
-        # Number of samples
-        outcome_ax.text(x=-4, y=0, s=f'{num_samples}', horizontalalignment='right', verticalalignment='center')
-
-        # Only put legend on first figure
-        if i == 0 and j == 0:
-            outcome_ax.legend(bbox_to_anchor=(0.0, 2.3, 2.1, 0.15), loc="lower left",
-                mode="expand", borderaxespad=0, ncol=3)
-
-        if j == len(samples_values)-1:
-            outcome_ax.spines['bottom'].set_visible(True)
-            outcome_ax.tick_params(left=False, bottom=True)
-
-            outcome_ax.set_xticks([0, num_trials/2, num_trials])
-            outcome_ax.tick_params(axis='x', which='major', labelsize=7)
-
-            # Only put x-label on last figure
-            if i == len(controllers)-1:
-                outcome_ax.set_xlabel('Outcomes')
-
-            succeed_text = f'{num_succeed} successful'
-        else:
-            outcome_ax.spines['bottom'].set_visible(False)
-            outcome_ax.tick_params(left=False, bottom=False)
-            outcome_ax.set_xticklabels([])
-
-            succeed_text = f'{num_succeed}'
-
-        # Number of successful trials
-        outcome_ax.text(x=4, y=0, s=succeed_text, horizontalalignment='left', verticalalignment='center',
-                        color='white', weight='bold', fontsize=8)
-
-        # ---- Cost distribution plot ----
-
-        dist_ax = axs[j, 1]
+            num_trials = num_succeed + num_timed_out + num_crashed
+            assert num_trials == 100
 
 
-        # Costs on X-axis
-        x_min = 0
-        x_max = 20000
-        x_bin_interval = 500
-        x_tick_interval = 5000
+            # ---- Cost distribution plot ----
 
-        xticks = range(x_min, x_max+1, x_tick_interval)
-        xtick_labels = [str(x) for x in xticks]
-        xtick_labels[-1] += '+'
-
-        cost_bins = range(x_min, x_max+1, x_bin_interval)
-
-        # Counts on Y-axis
-        y_mix, y_max = 0, 19
+            dist_ax:plt.Axes = axs[samp_ind]
 
 
-        # Plot histogram
-        dist_ax.hist(np.clip(finished_ep_costs, cost_bins[0], cost_bins[-1]),    # https://stackoverflow.com/a/30305331
-                 bins=cost_bins, color='tab:blue', label='Cost Distribution')
+            # Costs on X-axis
+            x_min = 0
+            x_max = 30000
+            x_bin_interval = 1000
+            x_tick_interval = 10000
+
+            xticks = range(x_min, x_max+1, x_tick_interval)
+            xtick_labels = [str(x).replace('0000', '0k') for x in xticks]
+            xtick_labels[-1] += '+'
+
+            cost_bins = range(x_min, x_max+1, x_bin_interval)
+
+            # Plot histogram
+            dist_ax.hist(np.clip(finished_ep_costs, cost_bins[0], cost_bins[-1]),    # https://stackoverflow.com/a/30305331
+                    bins=cost_bins, color='tab:blue', label='Cost Distribution')
+
+            # X-axis limits
+            dist_ax.set_xlim(x_min, x_max)
+
+            # Y-axis limits & ticks
+            dist_ax.set_ylim(0, 19)
+            dist_ax.set_yticks([0, 10])
+            dist_ax.tick_params(axis='y', which='major', labelsize=5)
+
+            # Remove spines
+            dist_ax.spines['top'].set_visible(False)
+            dist_ax.spines['right'].set_visible(False)
 
 
-        # X-axis limits
-        dist_ax.set_xlim(x_min, x_max)
+            # Number of samples label
+            if col==0 or col==1:
+                dist_ax.text(x=-3600, y=9, s=f'{num_samples}', horizontalalignment='right', verticalalignment='center')
 
-        # Y-axis limits & ticks
-        dist_ax.set_ylim(0, 19)
-        dist_ax.set_yticks([0, 10])
-        dist_ax.tick_params(axis='y', which='major', labelsize=5)
+            # # Set labels only on the last subplot
+            if samp_ind == len(samples_values) - 1:
+                dist_ax.tick_params(left=True, bottom=True)
 
-        # Remove spines
-        dist_ax.spines['top'].set_visible(False)
-        dist_ax.spines['right'].set_visible(False)
+                dist_ax.set_xticks(xticks, labels=xtick_labels)
 
-        # Set labels only on the last subplot
-        if j == len(samples_values) - 1:
-            dist_ax.tick_params(left=True, bottom=True)
+                dist_ax.tick_params(axis='x', which='major', labelsize=8)
 
-            dist_ax.set_xticks(xticks)
+                if col==0:
+                    # Since we're rotation, ha & va are flipped
+                    dist_ax.text(x=-9000, y=44, s='Samples', rotation=90, ha='center', va='center')
 
-            dist_ax.set_xticklabels(xtick_labels)
-            dist_ax.tick_params(axis='x', which='major', labelsize=8)
+            else:
+                dist_ax.tick_params(left=True, bottom=True)
+                dist_ax.set_xticklabels([])
 
-            # Only put x-label on last figure
-            if i == len(controllers)-1:
-                dist_ax.set_xlabel('Episode cost distribution')
-        else:
-            dist_ax.tick_params(left=True, bottom=False)
-            dist_ax.set_xticklabels([])
 
-    plt.savefig(f'figures/{short_controller_name.replace(' ', '_')}_cost_dist.pdf', format='pdf', bbox_inches='tight')
+plt.savefig(f'figures_WIP_3/dubins_sim_cost_dists.pdf', format='pdf', bbox_inches='tight')
 
-    #plt.show()
+#plt.show()
