@@ -92,50 +92,67 @@ for row in range(nrows):
             x_bin_interval = 1000
             x_tick_interval = 10000
 
-            xticks = range(x_min, x_max+1, x_tick_interval)
-            xtick_labels = [str(x).replace('0000', '0k') for x in xticks]
-            xtick_labels[-1] += '+'
+            xticks_unlabeled =  [10000, 20000, 30000] #range(x_min, x_max+1, x_tick_interval)
+            xticks_labeled = [0, 10000, 20000, 30000, 35500, 40500]
+            xtick_labels  = ['0', '10k', '20k', '30k+', 'T', 'C']
 
             cost_bins = range(x_min, x_max+1, x_bin_interval)
+            # Clip any observations above x_max into the "x_max & up" bin; https://stackoverflow.com/a/30305331
+            hist_data = np.clip(finished_ep_costs, cost_bins[0], cost_bins[-1])
 
             # Plot histogram
-            dist_ax.hist(np.clip(finished_ep_costs, cost_bins[0], cost_bins[-1]),    # https://stackoverflow.com/a/30305331
-                    bins=cost_bins, color='tab:blue', label='Cost Distribution')
+            dist_ax.hist(hist_data, bins=cost_bins, color='tab:blue', label='Cost Distribution')
 
             # X-axis limits
-            dist_ax.set_xlim(x_min, x_max)
+            dist_ax.set_xlim(x_min, 43000)
+
+            y_min = 0
+            y_max = 20
 
             # Y-axis limits & ticks
-            dist_ax.set_ylim(0, 19)
-            dist_ax.set_yticks([0, 10])
+            dist_ax.set_ylim(y_min, y_max)
+            dist_ax.set_yticks([0, 10, 20], labels=['', '10', '20'])
             dist_ax.tick_params(axis='y', which='major', labelsize=5)
 
-            # Remove spines
-            dist_ax.spines['top'].set_visible(False)
-            dist_ax.spines['right'].set_visible(False)
+            dist_ax.spines.left.set_bounds(y_min, y_max)
 
+            # Remove top & right spines
+            dist_ax.spines.top.set_visible(False)
+            dist_ax.spines.right.set_visible(False)
 
             # Number of samples label
             if col==0 or col==1:
-                dist_ax.text(x=-3600, y=9, s=f'{num_samples}', horizontalalignment='right', verticalalignment='center')
+                dist_ax.text(x=-4700, y=9, s=f'{num_samples}', weight='bold', ha='right', va='center')
 
-            # # Set labels only on the last subplot
+            num_groups_timed_out = num_timed_out // y_max
+            remainder_timed_out  = num_timed_out - (y_max * num_groups_timed_out)
+            x = [xticks_labeled[-2]+x_bin_interval*(i-1) for i in range(num_groups_timed_out + 1)]
+            y = [y_max] * num_groups_timed_out + [remainder_timed_out]
+            dist_ax.bar(x, y, width=x_bin_interval, color='tab:orange')
+
+            num_groups_crashed = num_crashed // y_max
+            remainder_crashed  = num_crashed - (y_max * num_groups_crashed)
+            x = [xticks_labeled[-2]+x_bin_interval*(i-2) for i in range(num_groups_crashed + 1)]
+            y = [y_max] * num_groups_crashed + [remainder_crashed]
+            dist_ax.bar(x, y, width=x_bin_interval, color='tab:red')
+
+            # Set labels only on the last subplot
             if samp_ind == len(samples_values) - 1:
                 dist_ax.tick_params(left=True, bottom=True)
 
-                dist_ax.set_xticks(xticks, labels=xtick_labels)
+                dist_ax.set_xticks(xticks_labeled, labels=xtick_labels)
 
                 dist_ax.tick_params(axis='x', which='major', labelsize=8)
 
                 if col==0:
                     # Since we're rotation, ha & va are flipped
-                    dist_ax.text(x=-9000, y=44, s='Samples', rotation=90, ha='center', va='center')
+                    dist_ax.text(x=-12300, y=44, s='Samples', rotation=90, ha='center', va='center')
 
             else:
                 dist_ax.tick_params(left=True, bottom=True)
-                dist_ax.set_xticklabels([])
+                dist_ax.set_xticks(xticks_unlabeled, labels=[])
 
 
-plt.savefig(f'figures_WIP_3/dubins_sim_cost_dists.pdf', format='pdf', bbox_inches='tight')
+plt.savefig(f'experiments_nov_6_no_lookahead/_figures/WIP.pdf', format='pdf', bbox_inches='tight')
 
 #plt.show()
