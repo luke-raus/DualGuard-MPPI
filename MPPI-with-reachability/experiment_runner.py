@@ -131,12 +131,9 @@ class ExperimentRunner:
             """
 
             mppi_action = controller.command(system.state)
-            # FIXME: We shouldnt be checking anything in a preemptively fashion, if the value function is below a small threshold at the current timestep we filter!
-            potential_next_state = system.next_states(system.state, mppi_action)
-            next_state_unsafe = bool(map.check_brt_collision( np.expand_dims(potential_next_state, axis=0) ))
 
             # If relevant, override MPPI-chosen control action with safety control
-            safety_filter_activated = ( (measured_state_is_unsafe or next_state_unsafe) and self.safety_filter_enabled)
+            safety_filter_activated = ( measured_state_is_unsafe and self.safety_filter_enabled )
             if safety_filter_activated:
                 # Safety filter activated! Choose action using BRT safety controller
                 action = map.get_brt_safety_control( np.expand_dims(system.state, axis=0) ).squeeze(axis=0)
