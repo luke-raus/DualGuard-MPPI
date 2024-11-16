@@ -17,6 +17,7 @@ df = pd.read_csv(exp_summaries_fname)
 controllers    = df['control_profile'].unique().tolist()
 samples_values = [1000, 250, 60, 20]  #df['mppi_samples'].unique().tolist()
 
+n_controllers = 6
 
 
 # Get the data!!!
@@ -31,30 +32,39 @@ for (num_samples, controller), group in df.groupby(['mppi_samples', 'control_pro
 
     data[(controller, num_samples)] = (num_crashed, num_timed_out, finished_ep_costs)
 
-
-# controller_arrangement = [
-#     ['Vanilla MPPI with obstacle costs',  'Vanilla MPPI with BRT costs'],
-#     ['Filtered MPPI with obstacle costs', 'Filtered MPPI with BRT costs'],
-#     ['Shield MPPI',                       'Sample-safe MPPI (our method)']
-# ]
-controller_arrangement = [
-    ['Vanilla MPPI with obstacle costs',  'Filtered MPPI with obstacle costs'],
-    ['Shield MPPI',                       'Sample-safe MPPI (our method)']
-]
-
+if n_controllers == 4:
+    controller_arrangement = [
+        ['Vanilla MPPI with obstacle costs',  'Filtered MPPI with obstacle costs'],
+        ['Shield MPPI',                       'Sample-safe MPPI (our method)']
+    ]
+elif n_controllers == 6:
+    controller_arrangement = [
+        ['Vanilla MPPI with obstacle costs',  'Vanilla MPPI with BRT costs'],
+        ['Filtered MPPI with obstacle costs', 'Filtered MPPI with BRT costs'],
+        ['Shield MPPI',                       'Sample-safe MPPI (our method)']
+    ]
 
 controller_name_conversion = {
-    'Vanilla MPPI with obstacle costs':  'Obs cost',
-    'Vanilla MPPI with BRT costs':       'BRT cost',
-    'Filtered MPPI with obstacle costs': 'Obs cost + LRF',
-    'Filtered MPPI with BRT costs':      'BRT cost + LRF',
-    'Shield MPPI':                       'Shield MPPI',
+    'Vanilla MPPI with obstacle costs':  'Obstacle penalty',
+    'Vanilla MPPI with BRT costs':       'BRT penalty',
+    'Filtered MPPI with obstacle costs': 'Obstacle pen. + LRF',
+    'Filtered MPPI with BRT costs':      'BRT pen. + LRF',
+    'Shield MPPI':                       'Shield-MPPI',
     'Sample-safe MPPI (our method)':     'Our method',
 }
 
-nrows, ncols = 2, 2
 
-fig = plt.figure(figsize=(5, 3.2))
+def create_bar_data(num, max, bin_range:tuple, bin_w):
+    ngroups   = num // max
+    remainder = num % max
+    bin_edges = range(bin_range[0], bin_range[1], bin_w)
+    bin_h = [max]*ngroups + [remainder] + [0]*(len(bin_edges)-ngroups-1)
+    return bin_edges, bin_h
+
+
+nrows, ncols = len(controller_arrangement), len(controller_arrangement[0])
+
+fig = plt.figure(figsize=(5, nrows*1.6))   # (5, 3.2) for 2x2 grid; 1.6 vertical units per row
 subfigs = fig.subfigures(nrows, ncols, wspace=0.04, hspace=0.07)
 
 for row in range(nrows):
@@ -66,7 +76,7 @@ for row in range(nrows):
         short_controller_name = controller_name_conversion[controller]
         subfig.suptitle(f'{short_controller_name}', weight='bold')
 
-        axs = subfig.subplots(len(samples_values), 1, sharey=True)
+        axs = subfig.subplots(len(samples_values), 1)
 
         # dist_ax.set_xlabel('Episode cost distribution')
 
@@ -80,79 +90,105 @@ for row in range(nrows):
             num_trials = num_succeed + num_timed_out + num_crashed
             assert num_trials == 100
 
-
             # ---- Cost distribution plot ----
 
-            dist_ax:plt.Axes = axs[samp_ind]
+            dist_ax = axs[samp_ind]
 
+            spine_tick_width = 0.6
 
             # Costs on X-axis
             x_min = 0
-            x_max = 30000
-            x_bin_interval = 1000
+            x_dist_max = 30000
+            x_max = 43000
+            bin_w = 1000
             x_tick_interval = 10000
 
-            xticks_unlabeled =  [10000, 20000, 30000] #range(x_min, x_max+1, x_tick_interval)
-            xticks_labeled = [0, 10000, 20000, 30000, 35500, 40500]
-            xtick_labels  = ['0', '10k', '20k', '30k+', 'T', 'C']
+            timed_out_ax_lims = (32000, 36000)
+            crashed_ax_lims   = (37000, 42000)
 
-            cost_bins = range(x_min, x_max+1, x_bin_interval)
-            # Clip any observations above x_max into the "x_max & up" bin; https://stackoverflow.com/a/30305331
+            xticks_unlabeled =  [10000, 20000, 30000, 34000, 39500] #range(x_min, x_dist_max+1, x_tick_interval)
+            xticks_labeled = [0, 10000, 20000, 30000, 34000, 39500]
+
+            xtick_labels  = ['0', '10k ', '20k ', '30k+   ', 'T', 'C']    # '≥30k'
+
+            cost_bins = range(x_min, x_dist_max+1, bin_w)
+            # Clip any observations above x_dist_max into the "x_dist_max & up" bin; https://stackoverflow.com/a/30305331
             hist_data = np.clip(finished_ep_costs, cost_bins[0], cost_bins[-1])
 
+            hist = np.histogram(hist_data, bins=cost_bins)
+            dist_ax.bar(hist[1][:-1], hist[0], width=bin_w, align='edge', bottom=0.3, color='tab:blue', zorder=3)
+
             # Plot histogram
-            dist_ax.hist(hist_data, bins=cost_bins, color='tab:blue', label='Cost Distribution')
+            # dist_ax.hist(hist_data, bins=cost_bins, color='tab:blue', label='Cost Distribution')
 
-            # X-axis limits
-            dist_ax.set_xlim(x_min, 43000)
+            dist_ax.set_xlim(x_min, x_max)
+            dist_ax.set_xticks(xticks_unlabeled, labels=[])
+            dist_ax.tick_params(axis='x', which='major', labelsize=8, length=2, width=spine_tick_width)
 
+            # Y-axis limits & ticks
             y_min = 0
             y_max = 20
 
-            # Y-axis limits & ticks
+            yticks       = [0, 10, 20]
+            ytick_labels = ['', '10', '20']
+            if samp_ind == len(samples_values)-1:
+                ytick_labels[0] = '0'
+
             dist_ax.set_ylim(y_min, y_max)
-            dist_ax.set_yticks([0, 10, 20], labels=['', '10', '20'])
-            dist_ax.tick_params(axis='y', which='major', labelsize=5)
+            dist_ax.set_yticks(yticks, labels=ytick_labels)
+            dist_ax.tick_params(axis='y', which='major', labelsize=5, length=2, width=spine_tick_width)
 
             dist_ax.spines.left.set_bounds(y_min, y_max)
+            dist_ax.spines.bottom.set_bounds(x_min, x_dist_max)
 
             # Remove top & right spines
             dist_ax.spines.top.set_visible(False)
             dist_ax.spines.right.set_visible(False)
+            dist_ax.spines.left.set_linewidth(spine_tick_width)
+            dist_ax.spines.bottom.set_linewidth(spine_tick_width)
+            dist_ax.set_axisbelow(True)
+
+            other_ax = dist_ax.twinx()
+            other_ax.spines.top.set_visible(False)
+            other_ax.spines.left.set_visible(False)
+            other_ax.spines.right.set_visible(False)
+            other_ax.spines.bottom.set_bounds(timed_out_ax_lims[0], timed_out_ax_lims[1])
+            other_ax.spines.bottom.set_linewidth(spine_tick_width)
+            other_ax.set_yticks([])
+
+            other_ax2 = dist_ax.twinx()
+            other_ax2.spines.top.set_visible(False)
+            other_ax2.spines.left.set_visible(False)
+            other_ax2.spines.right.set_visible(False)
+            other_ax2.spines.bottom.set_bounds(crashed_ax_lims[0], crashed_ax_lims[1])
+            other_ax2.spines.bottom.set_linewidth(spine_tick_width)
+            other_ax2.set_yticks([])
+
+            # Create bar graph for timed out trials
+            bin_edges, bin_h = create_bar_data(num_timed_out, y_max, timed_out_ax_lims, bin_w)
+            dist_ax.bar(bin_edges, bin_h, width=bin_w, bottom=spine_tick_width/2, align='edge', color='tab:orange')
+
+            # Create bar graph for crashed trials
+            bin_edges, bin_h = create_bar_data(num_crashed, y_max, crashed_ax_lims, bin_w)
+            dist_ax.bar(bin_edges, bin_h, width=bin_w, bottom=spine_tick_width/2, align='edge', color='tab:red')
 
             # Number of samples label
-            if col==0 or col==1:
-                dist_ax.text(x=-4700, y=9, s=f'{num_samples}', weight='bold', ha='right', va='center')
-
-            num_groups_timed_out = num_timed_out // y_max
-            remainder_timed_out  = num_timed_out - (y_max * num_groups_timed_out)
-            x = [xticks_labeled[-2]+x_bin_interval*(i-1) for i in range(num_groups_timed_out + 1)]
-            y = [y_max] * num_groups_timed_out + [remainder_timed_out]
-            dist_ax.bar(x, y, width=x_bin_interval, color='tab:orange')
-
-            num_groups_crashed = num_crashed // y_max
-            remainder_crashed  = num_crashed - (y_max * num_groups_crashed)
-            x = [xticks_labeled[-2]+x_bin_interval*(i-2) for i in range(num_groups_crashed + 1)]
-            y = [y_max] * num_groups_crashed + [remainder_crashed]
-            dist_ax.bar(x, y, width=x_bin_interval, color='tab:red')
+            dist_ax.text(x=-4700, y=9, s=f'{num_samples}', weight='bold', ha='right', va='center')
 
             # Set labels only on the last subplot
-            if samp_ind == len(samples_values) - 1:
-                dist_ax.tick_params(left=True, bottom=True)
+            if samp_ind == len(samples_values)-1:
 
                 dist_ax.set_xticks(xticks_labeled, labels=xtick_labels)
 
-                dist_ax.tick_params(axis='x', which='major', labelsize=8)
-
-                if col==0:
+                # Write "Samples" vertically on leftmost column
+                if col == 0:
                     # Since we're rotation, ha & va are flipped
                     dist_ax.text(x=-12300, y=44, s='Samples', rotation=90, ha='center', va='center')
 
-            else:
-                dist_ax.tick_params(left=True, bottom=True)
-                dist_ax.set_xticks(xticks_unlabeled, labels=[])
+                # Add x-axis label to bottom row
+                if row == nrows-1:
+                    dist_ax.set_xlabel('Episode cost or outcome')
 
 
-plt.savefig(f'experiments_nov_6_no_lookahead/_figures/WIP.pdf', format='pdf', bbox_inches='tight')
-
-#plt.show()
+plt.savefig(f'experiments_nov_6_no_lookahead/_figures/dubins_sim_cost_dists_{n_controllers}.pdf',
+            format='pdf', bbox_inches='tight', pad_inches=0.02)
