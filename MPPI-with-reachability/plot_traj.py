@@ -1,3 +1,4 @@
+from flask.cli import F
 import plotly.graph_objects as go
 import numpy as np
 import h5py
@@ -57,7 +58,7 @@ def update_layout_with_goal_state(layout:dict, config) -> dict:
     return layout
 
 
-def get_trace_of_overall_trajectory_to_index(result:ExperimentStorage, index:int = -1) -> dict:
+def get_trace_of_overall_trajectory_to_index(result:ExperimentStorage, index:int = -1, color="black", markers=True, name="System trajectory") -> dict:
 
     trajectory = result.get_overall_trajectory()
     if index == -1:
@@ -68,16 +69,17 @@ def get_trace_of_overall_trajectory_to_index(result:ExperimentStorage, index:int
         "y": trajectory[:index+1, 1],
         "mode": "lines+markers",
         "line": {
-            "color": "black"
+            "color": color
         },
-        "marker": {
+        "name": name,
+        "showlegend": True,
+    }
+    if markers:
+        trajectory_trace["marker"] = {
             "symbol": "triangle-up-open",
             "size": 15,
             "angle": convert_angles_for_plot(trajectory[:index+1, 2])
-        },
-        "name": "System trajectory",
-        "showlegend": True,
-    }
+        }
     return trajectory_trace
 
 
@@ -183,4 +185,35 @@ def plot_experiment_at_timestep(result:ExperimentStorage, step_index:int) -> go.
     fig.update_yaxes(scaleanchor="x", scaleratio=1)   # 'axis equal'
     return fig
 
-#plot_trajectory('experiments/experiment_0000/result_trajectory.csv')
+
+def plot_experiment_comparison(results:list[ExperimentStorage]) -> go.Figure:
+
+    name_map = {
+        'Vanilla MPPI with obstacle costs':  ('Obstacle penalty',    '#a4cde1'),   # light blue
+        'Vanilla MPPI with BRT costs':       ('BRT penalty',         '#1e78b0'),   # blue
+        'Filtered MPPI with obstacle costs': ('Obstacle pen. + LRF', '#b1dd8e'),   # light green
+        'Filtered MPPI with BRT costs':      ('BRT pen. + LRF',      '#369d3b'),   # green
+        'Shield MPPI':                       ('Shield-MPPI',         '#694296'),   # purple
+        'Sample-safe MPPI (our method)':     ('Our method',          '#ff7e1e')    # orange
+    }
+
+    traj_names = [res.get_config()['control_profile'] for res in results]
+    fin_and_costs = [(res.get_summary()['goal_reached'], res.get_summary()['total_cost']) for res in results]
+
+    legend_entries = [f'{name_map[x][0]}, {fin_and_costs[i]}' for i, x in enumerate(traj_names)]
+    colors = [name_map[x][1] for x in traj_names]
+
+    traces = [get_trace_of_overall_trajectory_to_index(res, name=legend_entries[i], color=colors[i], markers=False)
+              for i, res in enumerate(results)]
+
+    # Assumes all results share same map
+    layout = update_plot_layout_with_map( {}, results[0].get_environment_path() )
+    layout = update_layout_with_goal_state( layout, results[0].get_config() )
+
+    layout["xaxis"] = {'showgrid': False, 'zeroline': False}
+    layout["yaxis"] = {'showgrid': False, 'zeroline': False}
+
+    fig_dict = { "data": traces, "layout": layout }
+    fig = go.Figure(fig_dict)
+    fig.update_yaxes(scaleanchor="x", scaleratio=1)   # 'axis equal'
+    return fig

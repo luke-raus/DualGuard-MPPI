@@ -10,15 +10,18 @@ from experiment_storage import ExperimentStorage
 
 
 # Function to get the list of available experiments from a directory
-def get_experiment_list(exp_directory):
+def get_experiment_list(exp_directory:Path):
     # Might want to filter for experiments that are finished
     return sorted(exp_directory.iterdir())
+
+def get_experiment_groups(exps):
+    groups = [str(x)[:-10] for x in exps if 'control-0' in str(x)]
+    return groups
 
 # Function to get the result data in a readable format
 def format_dict_for_display(stored_result: ExperimentStorage):
     return f"RESULT:\n\n{OmegaConf.to_yaml(stored_result.get_summary())}\n\n" + \
            f"CONFIG:\n\n{OmegaConf.to_yaml(stored_result.get_config())}"
-
 
 
 # Initialize Dash app
@@ -32,10 +35,6 @@ app.layout = html.Div([
     # Dropdown to select experiment
     html.Label('Select experiment:'),
     dcc.Dropdown(id='experiment-dropdown', options=[]),
-
-    # Slider to select timestep
-    html.Label('Select timestep:'),
-    dcc.Slider(id='timestep-slider', min=0, max=0, step=1, value=0, marks={}),
 
     # Plot
     html.Div([
@@ -60,25 +59,8 @@ app.layout = html.Div([
     Input('experiment-dropdown', 'value')
 )
 def update_experiment_dropdown(value):
-    experiments = get_experiment_list(experiments_path)
-    return [{'label': str(exp), 'value': str(exp)} for exp in experiments]
-
-
-# Callback to update timestep slider based on selected experiment
-@app.callback(
-    Output('timestep-slider', 'max'),
-    Output('timestep-slider', 'marks'),
-    Output('timestep-slider', 'value'),
-    Input('experiment-dropdown', 'value')
-)
-def update_timestep_slider(selected_experiment):
-    if selected_experiment is None:
-        return 0, {}, 0
-
-    num_timesteps = ExperimentStorage(selected_experiment).get_num_timesteps()
-
-    marks = {i: str(i) for i in range(num_timesteps)}
-    return num_timesteps - 1, marks, 0
+    groups = get_experiment_groups(get_experiment_list(experiments_path))
+    return [{'label': str(g), 'value': str(g)} for g in groups]
 
 
 # Callback to display the experiment result for the selected timestep
@@ -86,20 +68,18 @@ def update_timestep_slider(selected_experiment):
     Output('experiment-plot', 'figure'),
     Output('details-display', 'children'),
     Input('experiment-dropdown', 'value'),
-    Input('timestep-slider', 'value')
 )
-def display_timestep(selected_experiment, selected_timestep):
-    if selected_experiment is None:
+def display_compared_trajectories(selected_group):
+
+    if selected_group is None:
         return go.Figure(), 'No experiment selected.'
 
-    stored_result = ExperimentStorage(selected_experiment)
-    fig = plot_traj.plot_experiment_at_timestep(stored_result, selected_timestep)
+    exps_in_group = [ExperimentStorage(x) for x in get_experiment_list(experiments_path) if selected_group in str(x)]
+    fig = plot_traj.plot_experiment_comparison(exps_in_group)
 
-    details_str = format_dict_for_display(stored_result)
+    details_str = ''
 
     return fig, details_str
-
-    # return f'Displaying raw data for timestep {selected_timestep}: {step_data}'
 
 
 # Run the app
