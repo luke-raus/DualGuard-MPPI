@@ -15,7 +15,7 @@ exp_summaries_fname = Path('experiments_nov_6_no_lookahead') / '_stats' / 'exp_s
 df = pd.read_csv(exp_summaries_fname)
 
 controllers    = df['control_profile'].unique().tolist()
-samples_values = [1000, 250, 60, 20]  #df['mppi_samples'].unique().tolist()
+samples_values = [1000, 250, 20] #[1000, 250, 60, 20]  #df['mppi_samples'].unique().tolist()
 
 n_controllers = 6
 
@@ -50,7 +50,7 @@ controller_name_conversion = {
     'Filtered MPPI with obstacle costs': 'Obstacle pen. + LRF',
     'Filtered MPPI with BRT costs':      'BRT pen. + LRF',
     'Shield MPPI':                       'Shield-MPPI',
-    'Sample-safe MPPI (our method)':     'Our method',
+    'Sample-safe MPPI (our method)':     'DualGuard MPPI (Ours)',
 }
 
 
@@ -64,8 +64,9 @@ def create_bar_data(num, max, bin_range:tuple, bin_w):
 
 nrows, ncols = len(controller_arrangement), len(controller_arrangement[0])
 
-fig = plt.figure(figsize=(5, nrows*1.6))   # (5, 3.2) for 2x2 grid; 1.6 vertical units per row
-subfigs = fig.subfigures(nrows, ncols, wspace=0.04, hspace=0.07)
+# fig = plt.figure(figsize=(5, nrows*1.6))   # (5, 3.2) for 2x2 grid; 1.6 vertical units per row
+fig = plt.figure(figsize=(5, nrows*1.33))   # (5, 3.2) for 2x2 grid; 1.6 vertical units per row
+subfigs = fig.subfigures(nrows, ncols, wspace=0.04, hspace=0.11) #0.07
 
 for row in range(nrows):
     for col in range(ncols):
@@ -74,9 +75,9 @@ for row in range(nrows):
 
         controller = controller_arrangement[row][col]
         short_controller_name = controller_name_conversion[controller]
-        subfig.suptitle(f'{short_controller_name}', weight='bold')
+        subfig.suptitle(f'{short_controller_name}', weight='bold', y=1.01)
 
-        axs = subfig.subplots(len(samples_values), 1)
+        axs = subfig.subplots(len(samples_values), 1)#, gridspec_kw={'hspace':0.2})
 
         # dist_ax.set_xlabel('Episode cost distribution')
 
@@ -183,12 +184,13 @@ for row in range(nrows):
                 # Write "Samples" vertically on leftmost column
                 if col == 0:
                     # Since we're rotation, ha & va are flipped
-                    dist_ax.text(x=-12300, y=44, s='Samples', rotation=90, ha='center', va='center')
+                    dist_ax.text(x=-12300, y=32, s='Samples', rotation=90, ha='center', va='center')
+                    # y=44
 
                 # Add x-axis label to bottom row
                 if row == nrows-1:
                     dist_ax.set_xlabel('Episode cost or outcome')
 
 
-plt.savefig(f'experiments_nov_6_no_lookahead/_figures/dubins_sim_cost_dists_{n_controllers}.pdf',
+plt.savefig(f'experiments_nov_6_no_lookahead/_figures/dubins_sim_cost_dists_{n_controllers}_shorter.pdf',
             format='pdf', bbox_inches='tight', pad_inches=0.02)
