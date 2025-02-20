@@ -1,4 +1,3 @@
-from flask.cli import F
 import plotly.graph_objects as go
 import numpy as np
 import h5py
@@ -104,24 +103,16 @@ def get_traces_of_samples(step_data:dict, max_samples=100) -> list[dict]:
     discarded_weight_threshold = 1e-9   # We assume that any sample with less than this much weight is effectively "discarded"
 
     is_discarded = sample_weights < discarded_weight_threshold
-    print(is_discarded)
-    print(all(is_discarded))
 
     if not all(is_discarded):
         max_weight = max(sample_weights)
         min_weight_above_threshold = min(sample_weights[ ~is_discarded ])
-
-        print(max_weight)
-        print(min_weight_above_threshold)
 
         sample_weights_scaled = (sample_weights - min_weight_above_threshold) / (max_weight - min_weight_above_threshold + 1e-9)  # avoid divide by zero if min=max
 
     sample_colors = [ f"rgba(255,140,16,{sample_alpha})" if is_discarded[i]
                       else f"rgba({255-round(255*sample_weights_scaled[i])},0,{round(255*sample_weights_scaled[i])},{sample_alpha})"
                       for i in range(len(sample_weights))]
-
-    print(sample_states[0][:, 0])
-    print(sample_states[0][:, 1])
 
     sample_traces = [ {
         "x": sample_states[i][:, 0],
@@ -160,7 +151,7 @@ def get_trace_of_nominal_traj_after(step_data:dict) -> dict:
 # def plot_experiment_at_timestep(result:ExperimentResult, environment_file:str, step_index:int) -> go.Figure:
 def plot_experiment_at_timestep(result:ExperimentStorage, step_index:int) -> go.Figure:
 
-    max_samples = 200
+    max_samples = 1000
 
     traces = []
     traces.append(get_trace_of_overall_trajectory_to_index(result, index=step_index))

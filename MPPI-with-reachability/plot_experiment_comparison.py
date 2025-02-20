@@ -25,12 +25,12 @@ def format_dict_for_display(stored_result: ExperimentStorage):
 
 
 # Initialize Dash app
-app = Dash(title='MPPI+reachability results')
+app = Dash(title='DualGuard MPPI results')
 
 # Layout
 # These defaults are updated by callbacks
 app.layout = html.Div([
-    html.H2("Experiment Results Viewer"),
+    html.H2("Comparison across controllers"),
 
     # Dropdown to select experiment
     html.Label('Select experiment:'),
@@ -84,9 +84,11 @@ def display_compared_trajectories(selected_group):
 
 # Run the app
 if __name__ == '__main__':
-    try:
+    if len(sys.argv) == 2:
         experiments_path = Path(sys.argv[1])
-    except:
-        raise ValueError('Please specify the experiment directory as an argument.')
+    else:
+        print("*** Attempting to default to '/experiments' as experiment path.       ***")
+        print("*** Otherwise, specify the experiment batch directory as an argument. ***")
+        experiments_path = Path('experiments')
 
     app.run_server(debug=True)

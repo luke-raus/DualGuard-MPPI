@@ -1,6 +1,5 @@
 import numpy as np
 import h5py
-# from scipy.io import loadmat
 from scipy.interpolate import RegularGridInterpolator as SciPyRGI
 
 
@@ -27,7 +26,7 @@ class ClutteredMap:
         self.goal_reward_dist = goal_reward_dist   # m
         self.goal_reward_cost = -1.e3
 
-        self.init_state = init_state    # Should assert these are tensors of shape (3,)
+        self.init_state = init_state    # Should assert these are arrays of shape (3,)
         self.goal_state = goal_state
 
         self.cost_type = cost_type
@@ -96,7 +95,7 @@ class ClutteredMap:
         elif self.cost_type == 'shield':
             return self.collision_cost * self.get_shield_cost(states) *10.0  #HACK: scaling factor
         else:
-            raise('Undefined obstacle type')
+            raise ValueError('Undefined cost type')
 
 
     def check_obs_collision(self, states):
