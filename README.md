@@ -1,4 +1,8 @@
-# MPPI-with-reachability
+# DualGuard-MPPI
+
+This is the authors' implementation of [DualGuard MPPI (arXiv preprint)](https://arxiv.org/abs/2502.01924) by Javier Borquez, Luke Raus, Yusuf Umut Ciftci, and Somil Bansal.
+
+Specifically, this repository can be used to replicate the Safe Planar Navigation experiments (section V-A of the paper) with minimal setup.
 
 ## Setup
 
@@ -16,7 +20,7 @@ From this repository's main directory:
 
 ```
 cd MPPI-with-reachability
-python run_many_experiments.py
+python run_experiments.py
 ```
 
 To test different controller configurations, you can modify the options in `run_many_experiments.py`.
