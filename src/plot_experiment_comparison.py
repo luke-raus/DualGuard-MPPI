@@ -15,7 +15,7 @@ def get_experiment_list(exp_directory:Path):
     return sorted(exp_directory.iterdir())
 
 def get_experiment_groups(exps):
-    groups = [str(x)[:-10] for x in exps if 'control-0' in str(x)]
+    groups = [str(x)[:str(x).find('control')] for x in exps if 'control-0' in str(x)]
     return groups
 
 # Function to get the result data in a readable format

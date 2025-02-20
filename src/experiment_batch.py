@@ -34,8 +34,9 @@ def initialize_experiment_batch(
                 config.mppi_samples = mppi_samples
                 config.save_samples = save_samples
 
+                controller_name = controller_config['control_profile']
                 # Set & create experiment directory, then save config file
-                exp_fname = f'exp_samples-{mppi_samples:04}_ep-{episode_config['episode_id']:03}_control-{control_ind}'
+                exp_fname = f'exp_samples-{mppi_samples:04}_ep-{episode_config['episode_id']:03}_control-{control_ind}-{controller_name}'
 
                 experiment_dir = batch_path / exp_fname
                 experiment_dir.mkdir(parents=True, exist_ok=False)
