@@ -1,5 +1,5 @@
 # control profile params (for ablation)
-control_profile: Vanilla MPPI with obstacle costs
+control_profile: Obs-penalty-MPPI
 apply_safety_filter_to_final_control:      false
 apply_safety_filter_to_nominal_trajectory: false
 apply_safety_filter_to_samples:            false

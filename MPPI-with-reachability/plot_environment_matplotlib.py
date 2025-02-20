@@ -90,12 +90,12 @@ def create_traj_comparison_plot(exp_dir:Path, exp_base:str):
     ax.set_xlabel('X [m]')
 
     name_map = {
-        'Vanilla MPPI with obstacle costs':  ('Obs. penalty',    '#a4cde1'),   # light blue
-        'Vanilla MPPI with BRT costs':       ('BRT penalty',     '#1e78b0'),   # blue
-        'Filtered MPPI with obstacle costs': ('Obs. pen. + LRF', '#b1dd8e'),   # light green
-        'Filtered MPPI with BRT costs':      ('BRT pen. + LRF',  '#369d3b'),   # green
-        'Shield MPPI':                       ('Shield-MPPI',     '#694296'),   # purple
-        'Sample-safe MPPI (our method)':     ('Our method',      '#ff7e1e')    # orange
+        'Obs-penalty-MPPI':           ('Obs. penalty',    '#a4cde1'),   # light blue
+        'BRT-penalty-MPPI':           ('BRT penalty',     '#1e78b0'),   # blue
+        'Obs-penalty-MPPI+LR-filter': ('Obs. pen. + LRF', '#b1dd8e'),   # light green
+        'BRT-penalty-MPPI+LR-filter': ('BRT pen. + LRF',  '#369d3b'),   # green
+        'Shield-MPPI':                ('Shield-MPPI',     '#694296'),   # purple
+        'DualGuard-MPPI':             ('DualGuard (ours)','#ff7e1e')    # orange
     }
 
     results = [ExperimentStorage(x) for x in sorted(exp_dir.iterdir()) if exp_base in str(x)]

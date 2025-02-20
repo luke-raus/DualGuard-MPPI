@@ -34,7 +34,7 @@ def get_stats_for_configs(all_exp_df:pd.DataFrame) -> pd.DataFrame:
 def compute_relative_costs(
         df:pd.DataFrame,
         groupby_keys:list[str]=['mppi_samples', 'init_state'],
-        reference_controller:str='Sample-safe MPPI (our method)'
+        reference_controller:str='DualGuard-MPPI'
     ) -> pd.DataFrame:
     """
     Returns dataframe with relative cost computation.

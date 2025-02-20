@@ -1,31 +1,29 @@
-# FIXME: decide on the final names for the profiles 
-
-- control_profile:                      Vanilla MPPI with obstacle costs
+- control_profile:                      Obs-penalty-MPPI
   apply_safety_filter_to_final_control: false
   apply_safety_filter_to_samples:       false
   cost_from_obstacles_or_BRT:           obs
 
-- control_profile:                      Vanilla MPPI with BRT costs
+- control_profile:                      BRT-penalty-MPPI
   apply_safety_filter_to_final_control: false
   apply_safety_filter_to_samples:       false
   cost_from_obstacles_or_BRT:           brt
 
-- control_profile:                      Filtered MPPI with obstacle costs
+- control_profile:                      Obs-penalty-MPPI+LR-filter
   apply_safety_filter_to_final_control: true
   apply_safety_filter_to_samples:       false
   cost_from_obstacles_or_BRT:           obs
 
-- control_profile:                      Filtered MPPI with BRT costs
+- control_profile:                      BRT-penalty-MPPI+LR-filter
   apply_safety_filter_to_final_control: true
   apply_safety_filter_to_samples:       false
   cost_from_obstacles_or_BRT:           brt
 
-- control_profile:                      Shield MPPI
+- control_profile:                      Shield-MPPI
   apply_safety_filter_to_final_control: false
   apply_safety_filter_to_samples:       false
   cost_from_obstacles_or_BRT:           shield
 
-- control_profile:                      Sample-safe MPPI (our method)
-  apply_safety_filter_to_final_control: true   # Hopefully, shouldn't matter
+- control_profile:                      DualGuard-MPPI
+  apply_safety_filter_to_final_control: true
   apply_safety_filter_to_samples:       true
   cost_from_obstacles_or_BRT:           obs    # Should be irrelevant, as samples will never enter BRT or obstacles

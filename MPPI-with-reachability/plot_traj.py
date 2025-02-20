@@ -189,12 +189,12 @@ def plot_experiment_at_timestep(result:ExperimentStorage, step_index:int) -> go.
 def plot_experiment_comparison(results:list[ExperimentStorage]) -> go.Figure:
 
     name_map = {
-        'Vanilla MPPI with obstacle costs':  ('Obstacle penalty',    '#a4cde1'),   # light blue
-        'Vanilla MPPI with BRT costs':       ('BRT penalty',         '#1e78b0'),   # blue
-        'Filtered MPPI with obstacle costs': ('Obstacle pen. + LRF', '#b1dd8e'),   # light green
-        'Filtered MPPI with BRT costs':      ('BRT pen. + LRF',      '#369d3b'),   # green
-        'Shield MPPI':                       ('Shield-MPPI',         '#694296'),   # purple
-        'Sample-safe MPPI (our method)':     ('Our method',          '#ff7e1e')    # orange
+        'Obs-penalty-MPPI':           ('Obstacle penalty',     '#a4cde1'),   # light blue
+        'BRT-penalty-MPPI':           ('BRT penalty',          '#1e78b0'),   # blue
+        'Obs-penalty-MPPI+LR-filter': ('Obstacle pen. + LRF',  '#b1dd8e'),   # light green
+        'BRT-penalty-MPPI+LR-filter': ('BRT pen. + LRF',       '#369d3b'),   # green
+        'Shield-MPPI':                ('Shield-MPPI',          '#694296'),   # purple
+        'DualGuard-MPPI':             ('DualGuard-MPPI (ours)','#ff7e1e')    # orange
     }
 
     traj_names = [res.get_config()['control_profile'] for res in results]

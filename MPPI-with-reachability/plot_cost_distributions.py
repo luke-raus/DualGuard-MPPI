@@ -34,23 +34,23 @@ for (num_samples, controller), group in df.groupby(['mppi_samples', 'control_pro
 
 if n_controllers == 4:
     controller_arrangement = [
-        ['Vanilla MPPI with obstacle costs',  'Filtered MPPI with obstacle costs'],
-        ['Shield MPPI',                       'Sample-safe MPPI (our method)']
+        ['Obs-penalty-MPPI',  'Obs-penalty-MPPI+LR-filter'],
+        ['Shield-MPPI',       'DualGuard-MPPI']
     ]
 elif n_controllers == 6:
     controller_arrangement = [
-        ['Vanilla MPPI with obstacle costs',  'Vanilla MPPI with BRT costs'],
-        ['Filtered MPPI with obstacle costs', 'Filtered MPPI with BRT costs'],
-        ['Shield MPPI',                       'Sample-safe MPPI (our method)']
+        ['Obs-penalty-MPPI',           'BRT-penalty-MPPI'],
+        ['Obs-penalty-MPPI+LR-filter', 'BRT-penalty-MPPI+LR-filter'],
+        ['Shield-MPPI',                'DualGuard-MPPI']
     ]
 
 controller_name_conversion = {
-    'Vanilla MPPI with obstacle costs':  'Obstacle penalty',
-    'Vanilla MPPI with BRT costs':       'BRT penalty',
-    'Filtered MPPI with obstacle costs': 'Obstacle pen. + LRF',
-    'Filtered MPPI with BRT costs':      'BRT pen. + LRF',
-    'Shield MPPI':                       'Shield-MPPI',
-    'Sample-safe MPPI (our method)':     'DualGuard MPPI (Ours)',
+    'Obs-penalty-MPPI':           'Obstacle penalty',
+    'BRT-penalty-MPPI':           'BRT penalty',
+    'Obs-penalty-MPPI+LR-filter': 'Obstacle pen. + LRF',
+    'BRT-penalty-MPPI+LR-filter': 'BRT pen. + LRF',
+    'Shield-MPPI':                'Shield MPPI',
+    'DualGuard-MPPI':             'DualGuard MPPI (Ours)',
 }
 
 
