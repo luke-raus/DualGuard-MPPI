@@ -21,7 +21,7 @@ def initialize_experiment_batch(
     config_schema = OmegaConf.structured(ExperimentConfigSchema)
     structured_default_config = OmegaConf.merge(config_schema, default_config)
 
-    print('Initializing experiments...')
+    print(f'Initializing experiments in: {batch_path.absolute()}')
     num_experiments = 0
 
     for mppi_samples in num_samples_settings:
@@ -40,21 +40,24 @@ def initialize_experiment_batch(
                 experiment_dir = batch_path / exp_fname
                 experiment_dir.mkdir(parents=True, exist_ok=False)
                 # May want to let user know that we're avoiding overriding existing experiment dirs
-                OmegaConf.save(config, f=experiment_dir/'config.yaml')
+
+                storage = ExperimentStorage(experiment_dir)
+                storage.save_config(config)
 
                 num_experiments += 1
 
-    print(f'Initialized {num_experiments} experiments.')
+    print(f'==== Initialized {num_experiments} experiments. ====')
 
 
 def run_experiment_batch(batch_path:Path) -> None:
-    print('==== RUNNING EXPERIMENTS ====')
+    print('Running experiments...')
     for experiment_dir in sorted(batch_path.iterdir()):
 
-        print(f'Running experiment {experiment_dir}')
+        print(f'Running experiment: {experiment_dir}')
         experiment_storage = ExperimentStorage(experiment_dir)
         experiment = ExperimentRunner(experiment_storage)
         experiment.initialize()
         experiment.run_and_save()
 
-    print('==== FINISHED EXPERIMENTS ====')
+    print('==== Finished experiments. ====')
+    print(f'Results are saved to: {batch_path.absolute()} ====')

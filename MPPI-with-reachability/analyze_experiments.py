@@ -4,12 +4,6 @@ import pandas as pd
 from experiment_storage import ExperimentStorage
 
 
-experiments_dir = Path('experiments_oct_1')
-
-exp_summaries_cache_fname = experiments_dir / '_stats' / 'exp_summaries.csv'
-exp_stats_fname           = experiments_dir / '_stats' / 'exp_stats.csv'
-
-
 def get_stats_for_configs(all_exp_df:pd.DataFrame) -> pd.DataFrame:
 
     # Each stat refers to a collection of trials with same # of samples & controller type
@@ -37,13 +31,21 @@ def get_stats_for_configs(all_exp_df:pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(config_results)
 
 
-def compute_relative_costs(df:pd.DataFrame) -> pd.DataFrame:
-
+def compute_relative_costs(
+        df:pd.DataFrame,
+        groupby_keys:list[str]=['mppi_samples', 'init_state'],
+        reference_controller:str='Sample-safe MPPI (our method)'
+    ) -> pd.DataFrame:
+    """
+    Returns dataframe with relative cost computation.
+    This computation is performed relative to reference_controller
+    when the dataframe is grouped by the keys in groupby_keys.
+    """
     def update_with_relative_cost(group):
         # Check if all controllers succeeded on the episode
         if group['goal_reached'].all():
             # Get the cost of our method to use as reference for relative costs
-            reference_cost = group.loc[(group['control_profile'] == 'Sample-safe MPPI (our method)'), 'total_cost'].item()
+            reference_cost = group.loc[(group['control_profile'] == reference_controller), 'total_cost'].item()
             group['relative_cost'] = group['total_cost'] / reference_cost
         else:
             # If not all controllers successful, return NaN for the entire group
@@ -56,7 +58,10 @@ def compute_relative_costs(df:pd.DataFrame) -> pd.DataFrame:
         if df[col].apply(lambda x: isinstance(x, list)).any():
             df[col] = df[col].apply(tuple)
 
-    result_df = df.groupby(['mppi_samples', 'init_state'], group_keys=False).apply(update_with_relative_cost)
+    # Ensure that our reference controller is in the dataframe
+    assert reference_controller in list(df['control_profile']), 'Reference controller not in data!'
+
+    result_df = df.groupby(groupby_keys, group_keys=False).apply(update_with_relative_cost)
 
     # Revert grouping
     result_df.reset_index(drop=True, inplace=True)
@@ -65,22 +70,34 @@ def compute_relative_costs(df:pd.DataFrame) -> pd.DataFrame:
 
 
 def load_experiment_results(exp_dir:Path) -> pd.DataFrame:
-    # if cached: return pd.read_csv(cached_results_csv)
     exps = [ExperimentStorage(x).get_all_experiment_info() for x in sorted(exp_dir.iterdir())]
     return pd.DataFrame(exps)
 
 
-if __name__ == "__main__":
+def create_experiment_batch_summary(experiments_dir:Path) -> pd.DataFrame:
+    batch_summary_df = load_experiment_results(experiments_dir)
+    batch_summary_df = compute_relative_costs(batch_summary_df)
+    return batch_summary_df
+
+
+def analyze_experiment_batch(experiments_dir) -> pd.DataFrame:
+    exp_summaries_cache_fname = experiments_dir / '_summaries.csv'
+    exp_stats_fname           = experiments_dir / '_stats.csv'
 
     try:
         all_exp_df = pd.read_csv( exp_summaries_cache_fname )
     except FileNotFoundError:
-        all_exp_df = load_experiment_results(experiments_dir)
-        all_exp_df = compute_relative_costs(all_exp_df)
+        all_exp_df = create_experiment_batch_summary(experiments_dir)
         all_exp_df.to_csv(exp_summaries_cache_fname, index=False)
-
     print(f"{len(all_exp_df)} experiments loaded")
 
-    summary = get_stats_for_configs(all_exp_df)
-    summary.to_csv(exp_stats_fname, index=False)
-    print(summary)
+    stats = get_stats_for_configs(all_exp_df)
+    stats.to_csv(exp_stats_fname, index=False)
+    print(stats)
+    return stats
+
+
+if __name__ == "__main__":
+
+    experiments_dir = Path('experiments')
+    analyze_experiment_batch(experiments_dir)
